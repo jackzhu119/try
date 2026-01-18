@@ -5,6 +5,7 @@ export interface DrugInfo {
   contraindications: string; // 禁忌
   storage: string;     // 贮藏
   sideEffects: string; // 不良反应
+  usage_tips: string;  // 新增：药师温馨提示 (生活建议/饮食禁忌)
   summary: string;     // For TTS
 }
 
