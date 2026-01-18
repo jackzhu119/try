@@ -4,7 +4,7 @@ import { DrugInfo, Language } from '../types';
 import { t } from '../translations';
 import { 
   ArrowLeft, Volume2, StopCircle, AlertTriangle, 
-  Pill, FileText, Thermometer, Info, ShieldCheck, HeartPulse
+  Pill, FileText, Thermometer, Info, ShieldCheck, HeartPulse, Activity
 } from 'lucide-react';
 
 interface ResultCardProps {
@@ -31,7 +31,6 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack, lang }) =>
     }
 
     const utterance = new SpeechSynthesisUtterance(info.summary);
-    // Auto-detect voice language based on text, or default to current lang
     utterance.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
     utterance.rate = 1.0;
     utterance.onend = () => setIsPlaying(false);
@@ -54,7 +53,16 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack, lang }) =>
   };
 
   return (
-    <div className="w-full h-full flex flex-col relative">
+    <div className="w-full h-full flex flex-col relative overflow-hidden bg-slate-50">
+      
+      {/* Decorative Side Elements for Large Screens */}
+      <div className="hidden xl:block absolute top-1/2 left-10 -translate-y-1/2 opacity-[0.04] pointer-events-none select-none">
+         <Pill size={400} className="-rotate-12 text-blue-800" />
+      </div>
+      <div className="hidden xl:block absolute bottom-0 right-10 opacity-[0.04] pointer-events-none select-none">
+         <Activity size={400} className="text-blue-800" />
+      </div>
+
       {/* Sticky Header */}
       <motion.div 
         initial={{ y: -50, opacity: 0 }}
@@ -73,7 +81,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack, lang }) =>
 
       {/* Main Content Area */}
       <motion.div 
-        className="flex-1 overflow-y-auto p-4 pb-20 no-scrollbar space-y-4 max-w-3xl mx-auto w-full"
+        className="flex-1 overflow-y-auto p-4 pb-20 no-scrollbar space-y-4 max-w-3xl mx-auto w-full relative z-10"
         variants={containerVariants}
         initial="hidden"
         animate="visible"

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Camera, Sparkles, Stethoscope, Pill, ArrowRight, Activity, ScanLine, ImagePlus, X, Globe, Mail } from 'lucide-react';
 import { AppMode, DrugInfo, DiagnosisInfo, LoadingState, Language } from './types';
@@ -9,6 +9,33 @@ import { DiagnosisResultCard } from './components/DiagnosisResultCard';
 import { LoadingOverlay } from './components/LoadingOverlay';
 
 type Tab = 'DRUG' | 'DIAGNOSIS';
+
+// Optimization: Moved outside App to prevent re-renders on state changes
+const AmbientBackground = React.memo(() => (
+  <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-slate-50">
+     {/* Mesh Gradient Overlay */}
+     <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px]"></div>
+     
+    <motion.div 
+      animate={{ 
+        x: [0, 100, -50, 0], 
+        y: [0, -50, 50, 0],
+        scale: [1, 1.2, 0.9, 1] 
+      }}
+      transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+      className="absolute -top-20 -left-20 w-[600px] h-[600px] bg-blue-200/40 rounded-full blur-[100px]"
+    />
+    <motion.div 
+      animate={{ 
+        x: [0, -70, 30, 0], 
+        y: [0, 80, -30, 0],
+        scale: [1, 1.1, 1] 
+      }}
+      transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+      className="absolute top-[30%] -right-40 w-[500px] h-[500px] bg-purple-200/40 rounded-full blur-[100px]"
+    />
+  </div>
+));
 
 function App() {
   const [lang, setLang] = useState<Language>('zh');
@@ -109,38 +136,16 @@ function App() {
 
   const clearDiagnosisImage = () => setDiagnosisImage(null);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     setMode(AppMode.HOME);
-    setDrugInfo(null);
-    setDiagnosisInfo(null);
-  };
-
-  // --- Background ---
-  const AmbientBackground = () => (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-slate-50">
-       {/* Mesh Gradient Overlay */}
-       <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px]"></div>
-       
-      <motion.div 
-        animate={{ 
-          x: [0, 100, -50, 0], 
-          y: [0, -50, 50, 0],
-          scale: [1, 1.2, 0.9, 1] 
-        }}
-        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -top-20 -left-20 w-[600px] h-[600px] bg-blue-200/40 rounded-full blur-[100px]"
-      />
-      <motion.div 
-        animate={{ 
-          x: [0, -70, 30, 0], 
-          y: [0, 80, -30, 0],
-          scale: [1, 1.1, 1] 
-        }}
-        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-        className="absolute top-[30%] -right-40 w-[500px] h-[500px] bg-purple-200/40 rounded-full blur-[100px]"
-      />
-    </div>
-  );
+    // Performance Optimization: 
+    // Delay clearing data to ensure the exit animation (AnimatePresence) has the data it needs to render.
+    // This also reduces the amount of state updates happening in a single frame.
+    setTimeout(() => {
+        setDrugInfo(null);
+        setDiagnosisInfo(null);
+    }, 500); 
+  }, []);
 
   // --- Render ---
 
@@ -171,16 +176,22 @@ function App() {
           {mode === AppMode.RESULT && drugInfo ? (
             <motion.div 
               key="drug-result"
-              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }}
-              className="w-full h-screen"
+              initial={{ opacity: 0, scale: 0.98, x: 20 }} 
+              animate={{ opacity: 1, scale: 1, x: 0 }} 
+              exit={{ opacity: 0, scale: 0.98, x: 20 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="w-full h-screen fixed inset-0 z-20 bg-slate-50"
             >
               <ResultCard info={drugInfo} onBack={handleBack} lang={lang} />
             </motion.div>
           ) : mode === AppMode.DIAGNOSIS_RESULT && diagnosisInfo ? (
              <motion.div 
               key="diagnosis-result"
-              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }}
-              className="w-full h-screen"
+              initial={{ opacity: 0, scale: 0.98, x: 20 }} 
+              animate={{ opacity: 1, scale: 1, x: 0 }} 
+              exit={{ opacity: 0, scale: 0.98, x: 20 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="w-full h-screen fixed inset-0 z-20 bg-slate-50"
             >
               <DiagnosisResultCard info={diagnosisInfo} onBack={handleBack} lang={lang} />
             </motion.div>

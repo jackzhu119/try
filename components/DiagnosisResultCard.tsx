@@ -4,7 +4,7 @@ import { DiagnosisInfo, Language } from '../types';
 import { t } from '../translations';
 import { 
   ArrowLeft, Volume2, StopCircle, Stethoscope, 
-  Activity, Thermometer, ShieldAlert, Utensils, HeartPulse, Sparkles, AlertCircle
+  Activity, Thermometer, ShieldAlert, Utensils, HeartPulse, Sparkles, AlertCircle, Dna
 } from 'lucide-react';
 
 interface DiagnosisResultCardProps {
@@ -96,7 +96,16 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
   };
 
   return (
-    <div className="w-full h-full flex flex-col relative bg-slate-50">
+    <div className="w-full h-full flex flex-col relative overflow-hidden bg-slate-50">
+      
+      {/* Decorative Side Elements for Large Screens */}
+      <div className="hidden xl:block absolute top-1/2 left-10 -translate-y-1/2 opacity-[0.04] pointer-events-none select-none">
+         <Stethoscope size={400} className="text-indigo-800" />
+      </div>
+      <div className="hidden xl:block absolute bottom-10 right-10 opacity-[0.04] pointer-events-none select-none">
+         <Dna size={400} className="-rotate-12 text-indigo-800" />
+      </div>
+
       {/* Sticky Header */}
       <motion.div 
         initial={{ y: -50, opacity: 0 }}
@@ -118,7 +127,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
 
       {/* Content */}
       <motion.div 
-        className="flex-1 overflow-y-auto p-4 pb-20 no-scrollbar space-y-6 max-w-3xl mx-auto w-full"
+        className="flex-1 overflow-y-auto p-4 pb-20 no-scrollbar space-y-6 max-w-3xl mx-auto w-full relative z-10"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
