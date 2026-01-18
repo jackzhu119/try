@@ -54,7 +54,7 @@ Please return a valid JSON object. Schema:
 }
 `;
 
-async function callQwenApi(messages: any[], model: string): Promise<any> {
+async function callQwenApi(messages: any[], model: string, jsonMode: boolean = true): Promise<any> {
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
     throw new Error("Missing API Key.");
@@ -62,18 +62,23 @@ async function callQwenApi(messages: any[], model: string): Promise<any> {
 
   const endpoint = "/api/qwen/chat/completions";
 
+  const body: any = {
+    model: model,
+    messages: messages,
+    temperature: 0.5,
+  };
+
+  if (jsonMode) {
+      body.response_format = { type: "json_object" };
+  }
+
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${apiKey}`
     },
-    body: JSON.stringify({
-      model: model,
-      messages: messages,
-      temperature: 0.5,
-      response_format: { type: "json_object" }
-    })
+    body: JSON.stringify(body)
   });
 
   if (!response.ok) {
@@ -87,13 +92,17 @@ async function callQwenApi(messages: any[], model: string): Promise<any> {
     throw new Error("No content returned from AI");
   }
 
-  try {
-    const cleanedJson = cleanJsonString(content);
-    return JSON.parse(cleanedJson);
-  } catch (e) {
-    console.error("JSON Parse Error:", e);
-    throw new Error("Failed to parse AI response");
+  if (jsonMode) {
+    try {
+        const cleanedJson = cleanJsonString(content);
+        return JSON.parse(cleanedJson);
+    } catch (e) {
+        console.error("JSON Parse Error:", e);
+        throw new Error("Failed to parse AI response");
+    }
   }
+  
+  return content;
 }
 
 export const getDrugInfoFromText = async (query: string, lang: Language): Promise<DrugInfo> => {
@@ -156,3 +165,25 @@ export const analyzeSymptoms = async (symptoms: string, base64Image: string | un
   const result = await callQwenApi(messages, model);
   return result as DiagnosisInfo;
 };
+
+// --- Follow-up Chat ---
+
+export const askFollowUpQuestion = async (
+    context: string, 
+    question: string, 
+    lang: Language
+): Promise<string> => {
+    const systemPrompt = lang === 'zh' 
+        ? "你是一位友善、专业的医疗助手。请根据提供的[诊断信息/药品信息]上下文，回答用户的追问。回答要简洁明了（100字以内），安抚用户情绪，并给出实用的建议。"
+        : "You are a friendly and professional medical assistant. Based on the provided [Diagnosis/Drug Info] context, answer the user's follow-up question. Keep the answer concise (under 100 words), reassuring, and practical.";
+
+    const messages = [
+        { role: "system", content: systemPrompt },
+        { role: "system", content: `Context Info:\n${context}` },
+        { role: "user", content: question }
+    ];
+
+    // Using non-JSON mode for chat
+    const result = await callQwenApi(messages, "qwen-turbo", false);
+    return result as string;
+}

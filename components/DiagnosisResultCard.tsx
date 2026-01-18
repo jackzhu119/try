@@ -4,8 +4,9 @@ import { DiagnosisInfo, Language } from '../types';
 import { t } from '../translations';
 import { 
   ArrowLeft, Volume2, StopCircle, Stethoscope, 
-  Activity, Thermometer, ShieldAlert, Utensils, HeartPulse, Sparkles, AlertCircle, Dna
+  Activity, Thermometer, ShieldAlert, Utensils, HeartPulse, Sparkles, AlertCircle, Dna, Copy, Check
 } from 'lucide-react';
+import { FollowUpChat } from './FollowUpChat';
 
 interface DiagnosisResultCardProps {
   info: DiagnosisInfo;
@@ -13,9 +14,11 @@ interface DiagnosisResultCardProps {
   lang: Language;
 }
 
-export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, onBack, lang }) => {
+// Optimization: Use React.memo to prevent re-renders when parent state (like Toast) changes
+export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.memo(({ info, onBack, lang }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [copied, setCopied] = useState(false);
   const T = t[lang];
 
   useEffect(() => {
@@ -37,6 +40,21 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
     utterance.onerror = () => setIsPlaying(false);
     setIsPlaying(true);
     window.speechSynthesis.speak(utterance);
+  };
+
+  const handleCopy = () => {
+    const text = `
+🩺 ${T.diagnosis_report}
+⚠️ ${info.urgency}
+---
+📝 ${info.summary}
+👉 ${info.potential_conditions.map(c => `${c.name} (${c.probability})`).join(', ')}
+💊 ${T.rec_meds}: ${info.potential_conditions[0].medications.join(', ')}
+🥗 ${T.lifestyle}: ${info.lifestyle_advice}
+    `.trim();
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   // Theme based on urgency
@@ -95,6 +113,8 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
     exit: { opacity: 0, x: -20 }
   };
 
+  const chatContext = JSON.stringify(info);
+
   return (
     <div className="w-full h-full flex flex-col relative overflow-hidden bg-slate-50">
       
@@ -122,177 +142,211 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
            <Stethoscope size={18} className="text-blue-500"/>
            {T.diagnosis_report}
         </span>
-        <div className="w-10"></div>
+         {/* Copy Button */}
+         <button 
+          onClick={handleCopy}
+          className="p-2 rounded-full hover:bg-blue-50 text-blue-600 transition-all flex items-center gap-1 active:scale-95"
+          title={T.copy_report}
+        >
+           <AnimatePresence mode="wait">
+             {copied ? (
+               <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <Check size={20} />
+               </motion.div>
+             ) : (
+               <motion.div key="copy" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <Copy size={20} />
+               </motion.div>
+             )}
+           </AnimatePresence>
+        </button>
       </motion.div>
 
       {/* Content */}
       <motion.div 
-        className="flex-1 overflow-y-auto p-4 pb-20 no-scrollbar space-y-6 max-w-3xl mx-auto w-full relative z-10"
+        className="flex-1 overflow-y-auto p-4 pb-20 no-scrollbar space-y-6 max-w-5xl mx-auto w-full relative z-10"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        
-        {/* Urgency & Summary Card */}
-        <motion.div variants={itemVariants} className={`bg-gradient-to-br ${theme.bg} rounded-3xl p-6 text-white shadow-xl ${theme.shadow} relative overflow-hidden`}>
-          <div className="absolute top-0 right-0 p-4 opacity-20">
-            <Activity size={120} />
-          </div>
-          
-          <div className="relative z-10">
-            <div className="flex justify-between items-start mb-4">
-              <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-white/10 flex items-center gap-1">
-                 {info.urgency === 'High' ? T.urgency_high : info.urgency === 'Medium' ? T.urgency_med : T.urgency_low}
-              </span>
-              <button 
-                onClick={handlePlayAudio}
-                className="flex items-center gap-2 bg-white/90 hover:bg-white text-slate-800 px-3 py-1.5 rounded-full font-bold text-xs shadow-lg transition-all active:scale-95"
-              >
-                {isPlaying ? <StopCircle size={14} /> : <Volume2 size={14} />}
-                <span>{T.play}</span>
-              </button>
-            </div>
-            
-            <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
-              <Sparkles size={24} className="opacity-80"/>
-              {T.preliminary_analysis}
-            </h1>
-            <p className="text-white/90 leading-relaxed text-sm">
-              {info.summary}
-            </p>
-          </div>
-        </motion.div>
-
-        {/* --- Interactive Condition Tabs --- */}
-        <motion.div variants={itemVariants}>
-          <div className="flex items-center gap-2 mb-3 px-1">
-             <ShieldAlert size={18} className="text-slate-500"/>
-             <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{T.possible_causes}</h3>
-          </div>
-          
-          {/* Tabs */}
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-            {info.potential_conditions.map((condition, index) => (
-              <button
-                key={index}
-                onClick={() => setSelectedIndex(index)}
-                className="relative flex-shrink-0 px-5 py-3 rounded-2xl transition-all outline-none"
-              >
-                {selectedIndex === index && (
-                  <motion.div
-                    layoutId="activeTab"
-                    className="absolute inset-0 bg-white shadow-md border border-slate-100 rounded-2xl"
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                )}
-                <div className="relative z-10 flex flex-col items-start gap-1">
-                  <span className={`font-bold text-sm ${selectedIndex === index ? 'text-slate-800' : 'text-slate-400'}`}>
-                    {condition.name}
-                  </span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${
-                    selectedIndex === index 
-                      ? 'bg-blue-100 text-blue-700' 
-                      : 'bg-slate-200 text-slate-500'
-                  }`}>
-                    {condition.probability}
-                  </span>
+         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+           
+           {/* Left Column (Diagnosis) */}
+           <div className="lg:col-span-2 space-y-6">
+              
+              {/* Urgency & Summary Card */}
+              <motion.div variants={itemVariants} className={`bg-gradient-to-br ${theme.bg} rounded-3xl p-6 text-white shadow-xl ${theme.shadow} relative overflow-hidden`}>
+                <div className="absolute top-0 right-0 p-4 opacity-20">
+                  <Activity size={120} />
                 </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Tab Content Area */}
-          <div className="mt-2 bg-white rounded-3xl p-6 shadow-sm border border-slate-100 min-h-[300px]">
-             <AnimatePresence mode="wait">
-                <motion.div
-                  key={selectedIndex}
-                  variants={tabContentVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: 0.2 }}
-                  className="space-y-6"
-                >
-                  {/* Explanation */}
-                  <div>
-                    <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-2">
-                      <AlertCircle size={18} className="text-blue-500"/>
-                      {T.pathology}
-                    </h4>
-                    <p className="text-slate-600 text-sm leading-6 bg-slate-50 p-3 rounded-xl">
-                      {selectedCondition.explanation}
-                    </p>
+                
+                <div className="relative z-10">
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-white/10 flex items-center gap-1">
+                      {info.urgency === 'High' ? T.urgency_high : info.urgency === 'Medium' ? T.urgency_med : T.urgency_low}
+                    </span>
+                    <button 
+                      onClick={handlePlayAudio}
+                      className="flex items-center gap-2 bg-white/90 hover:bg-white text-slate-800 px-3 py-1.5 rounded-full font-bold text-xs shadow-lg transition-all active:scale-95"
+                    >
+                      {isPlaying ? <StopCircle size={14} /> : <Volume2 size={14} />}
+                      <span>{T.play}</span>
+                    </button>
                   </div>
+                  
+                  <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
+                    <Sparkles size={24} className="opacity-80"/>
+                    {T.preliminary_analysis}
+                  </h1>
+                  <p className="text-white/90 leading-relaxed text-sm">
+                    {info.summary}
+                  </p>
+                </div>
+              </motion.div>
 
-                  <div className="w-full h-px bg-slate-100 my-4"></div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Medications */}
-                    <div>
-                      <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-3">
-                        <Thermometer size={18} className="text-purple-500"/>
-                        {T.rec_meds}
-                      </h4>
-                      {selectedCondition.medications.length > 0 ? (
-                        <ul className="space-y-2">
-                          {selectedCondition.medications.map((med, idx) => (
-                            <li key={idx} className="flex items-start gap-2 text-sm text-slate-700 bg-purple-50/50 p-2 rounded-lg border border-purple-100/50">
-                              <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-purple-400 shrink-0" />
-                              {med}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-sm text-slate-400 italic">{T.no_meds}</p>
+              {/* --- Interactive Condition Tabs --- */}
+              <motion.div variants={itemVariants}>
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <ShieldAlert size={18} className="text-slate-500"/>
+                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{T.possible_causes}</h3>
+                </div>
+                
+                {/* Tabs */}
+                <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                  {info.potential_conditions.map((condition, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedIndex(index)}
+                      className="relative flex-shrink-0 px-5 py-3 rounded-2xl transition-all outline-none"
+                    >
+                      {selectedIndex === index && (
+                        <motion.div
+                          layoutId="activeTab"
+                          className="absolute inset-0 bg-white shadow-md border border-slate-100 rounded-2xl"
+                          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        />
                       )}
-                    </div>
+                      <div className="relative z-10 flex flex-col items-start gap-1">
+                        <span className={`font-bold text-sm ${selectedIndex === index ? 'text-slate-800' : 'text-slate-400'}`}>
+                          {condition.name}
+                        </span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${
+                          selectedIndex === index 
+                            ? 'bg-blue-100 text-blue-700' 
+                            : 'bg-slate-200 text-slate-500'
+                        }`}>
+                          {condition.probability}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
 
-                    {/* Treatments */}
-                    <div>
-                      <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-3">
-                        <HeartPulse size={18} className="text-emerald-500"/>
-                        {T.adj_treatment}
-                      </h4>
-                       {selectedCondition.treatments.length > 0 ? (
-                        <ul className="space-y-2">
-                          {selectedCondition.treatments.map((t, idx) => (
-                            <li key={idx} className="flex items-start gap-2 text-sm text-slate-700 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100/50">
-                              <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                              {t}
-                            </li>
-                          ))}
-                        </ul>
-                       ) : (
-                        <p className="text-sm text-slate-400 italic">{T.no_treatments}</p>
-                       )}
-                    </div>
-                  </div>
+                {/* Tab Content Area */}
+                <div className="mt-2 bg-white rounded-3xl p-6 shadow-sm border border-slate-100 min-h-[300px]">
+                  <AnimatePresence mode="wait">
+                      <motion.div
+                        key={selectedIndex}
+                        variants={tabContentVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        transition={{ duration: 0.2 }}
+                        className="space-y-6"
+                      >
+                        {/* Explanation */}
+                        <div>
+                          <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-2">
+                            <AlertCircle size={18} className="text-blue-500"/>
+                            {T.pathology}
+                          </h4>
+                          <p className="text-slate-600 text-sm leading-6 bg-slate-50 p-3 rounded-xl">
+                            {selectedCondition.explanation}
+                          </p>
+                        </div>
 
-                </motion.div>
-             </AnimatePresence>
-          </div>
-        </motion.div>
+                        <div className="w-full h-px bg-slate-100 my-4"></div>
 
-        {/* Generic Lifestyle Advice */}
-        <motion.div variants={itemVariants} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100">
-          <div className="flex items-center gap-2 text-indigo-700 font-bold mb-2">
-            <Utensils size={20} />
-            <h3>{T.lifestyle}</h3>
-          </div>
-          <p className="text-slate-700 text-sm leading-6">
-            {info.lifestyle_advice}
-          </p>
-        </motion.div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Medications */}
+                          <div>
+                            <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-3">
+                              <Thermometer size={18} className="text-purple-500"/>
+                              {T.rec_meds}
+                            </h4>
+                            {selectedCondition.medications.length > 0 ? (
+                              <ul className="space-y-2">
+                                {selectedCondition.medications.map((med, idx) => (
+                                  <li key={idx} className="flex items-start gap-2 text-sm text-slate-700 bg-purple-50/50 p-2 rounded-lg border border-purple-100/50">
+                                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-purple-400 shrink-0" />
+                                    {med}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-sm text-slate-400 italic">{T.no_meds}</p>
+                            )}
+                          </div>
 
-        {/* Disclaimer Footer */}
-        <motion.div variants={itemVariants} className="flex gap-3 bg-slate-100 rounded-xl p-4 text-xs text-slate-500 items-start">
-           <ShieldAlert size={16} className="shrink-0 mt-0.5" />
-           <p>
-             <strong>{T.disclaimer_title}</strong> {T.disclaimer_text}
-           </p>
-        </motion.div>
+                          {/* Treatments */}
+                          <div>
+                            <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-3">
+                              <HeartPulse size={18} className="text-emerald-500"/>
+                              {T.adj_treatment}
+                            </h4>
+                            {selectedCondition.treatments.length > 0 ? (
+                              <ul className="space-y-2">
+                                {selectedCondition.treatments.map((t, idx) => (
+                                  <li key={idx} className="flex items-start gap-2 text-sm text-slate-700 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100/50">
+                                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                                    {t}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-sm text-slate-400 italic">{T.no_treatments}</p>
+                            )}
+                          </div>
+                        </div>
 
+                      </motion.div>
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+
+              {/* Generic Lifestyle Advice */}
+              <motion.div variants={itemVariants} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100">
+                <div className="flex items-center gap-2 text-indigo-700 font-bold mb-2">
+                  <Utensils size={20} />
+                  <h3>{T.lifestyle}</h3>
+                </div>
+                <p className="text-slate-700 text-sm leading-6">
+                  {info.lifestyle_advice}
+                </p>
+              </motion.div>
+
+              {/* Disclaimer Footer */}
+              <motion.div variants={itemVariants} className="flex gap-3 bg-slate-100 rounded-xl p-4 text-xs text-slate-500 items-start">
+                <ShieldAlert size={16} className="shrink-0 mt-0.5" />
+                <p>
+                  <strong>{T.disclaimer_title}</strong> {T.disclaimer_text}
+                </p>
+              </motion.div>
+           </div>
+
+           {/* Right Column: AI Chat (Takes 1/3) */}
+           <motion.div variants={itemVariants} className="lg:col-span-1 h-full min-h-[400px]">
+              <div className="sticky top-20 h-[calc(100vh-140px)] min-h-[400px]">
+                 <FollowUpChat 
+                    contextText={chatContext} 
+                    lang={lang}
+                    suggestions={[T.suggested_q1_diag, T.suggested_q2_diag]}
+                  />
+              </div>
+           </motion.div>
+
+         </div>
       </motion.div>
     </div>
   );
-};
+});

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { DrugInfo, Language } from '../types';
 import { t } from '../translations';
 import { 
   ArrowLeft, Volume2, StopCircle, AlertTriangle, 
-  Pill, FileText, Thermometer, Info, ShieldCheck, HeartPulse, Activity
+  Pill, FileText, Thermometer, Info, ShieldCheck, HeartPulse, Activity, Copy, Check
 } from 'lucide-react';
+import { FollowUpChat } from './FollowUpChat';
 
 interface ResultCardProps {
   info: DrugInfo;
@@ -13,8 +14,10 @@ interface ResultCardProps {
   lang: Language;
 }
 
-export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack, lang }) => {
+// Optimization: Use React.memo to prevent re-renders when parent state (like Toast) changes
+export const ResultCard: React.FC<ResultCardProps> = React.memo(({ info, onBack, lang }) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [copied, setCopied] = useState(false);
   const T = t[lang];
 
   useEffect(() => {
@@ -39,6 +42,21 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack, lang }) =>
     window.speechSynthesis.speak(utterance);
   };
 
+  const handleCopy = () => {
+    const text = `
+💊 ${info.name}
+---
+📝 ${T.indications}: ${info.indications}
+💊 ${T.dosage}: ${info.dosage}
+⚠️ ${T.contraindications}: ${info.contraindications}
+ℹ️ ${T.side_effects}: ${info.sideEffects}
+💡 ${T.tips}: ${info.usage_tips}
+    `.trim();
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
@@ -51,6 +69,9 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack, lang }) =>
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1 }
   };
+
+  // Construct context for the chat
+  const chatContext = JSON.stringify(info);
 
   return (
     <div className="w-full h-full flex flex-col relative overflow-hidden bg-slate-50">
@@ -76,12 +97,30 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack, lang }) =>
           <ArrowLeft size={24} />
         </button>
         <span className="font-semibold text-slate-800 truncate max-w-[200px]">{info.name}</span>
-        <div className="w-10"></div>
+        
+        {/* Copy Button */}
+        <button 
+          onClick={handleCopy}
+          className="p-2 rounded-full hover:bg-blue-50 text-blue-600 transition-all flex items-center gap-1 active:scale-95"
+          title={T.copy_report}
+        >
+           <AnimatePresence mode="wait">
+             {copied ? (
+               <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <Check size={20} />
+               </motion.div>
+             ) : (
+               <motion.div key="copy" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <Copy size={20} />
+               </motion.div>
+             )}
+           </AnimatePresence>
+        </button>
       </motion.div>
 
       {/* Main Content Area */}
       <motion.div 
-        className="flex-1 overflow-y-auto p-4 pb-20 no-scrollbar space-y-4 max-w-3xl mx-auto w-full relative z-10"
+        className="flex-1 overflow-y-auto p-4 pb-20 no-scrollbar space-y-4 max-w-4xl mx-auto w-full relative z-10"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -121,72 +160,88 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack, lang }) =>
           </div>
         </motion.div>
 
-        {/* 2. Bento Grid Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 2. Main Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           
-          {/* Warning Card */}
-          <motion.div variants={itemVariants} className="bg-red-50 rounded-2xl p-5 border border-red-100 flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-red-600 font-bold">
-              <AlertTriangle size={20} />
-              <h3>{T.contraindications}</h3>
-            </div>
-            <p className="text-slate-700 text-sm leading-6">
-              {info.contraindications}
-            </p>
-          </motion.div>
+          {/* Left Column: Info Cards (Takes 2/3 on large screens) */}
+          <div className="lg:col-span-2 space-y-4">
+             {/* Warning Card */}
+            <motion.div variants={itemVariants} className="bg-red-50 rounded-2xl p-5 border border-red-100 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-red-600 font-bold">
+                <AlertTriangle size={20} />
+                <h3>{T.contraindications}</h3>
+              </div>
+              <p className="text-slate-700 text-sm leading-6">
+                {info.contraindications}
+              </p>
+            </motion.div>
 
-          {/* Usage Tips */}
-          <motion.div variants={itemVariants} className="bg-amber-50 rounded-2xl p-5 border border-amber-100 flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-amber-600 font-bold">
-              <ShieldCheck size={20} />
-              <h3>{T.tips}</h3>
-            </div>
-            <p className="text-slate-700 text-sm leading-6 whitespace-pre-line">
-              {info.usage_tips}
-            </p>
-          </motion.div>
+            {/* Usage Tips */}
+            <motion.div variants={itemVariants} className="bg-amber-50 rounded-2xl p-5 border border-amber-100 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-amber-600 font-bold">
+                <ShieldCheck size={20} />
+                <h3>{T.tips}</h3>
+              </div>
+              <p className="text-slate-700 text-sm leading-6 whitespace-pre-line">
+                {info.usage_tips}
+              </p>
+            </motion.div>
 
-          {/* Dosage */}
-          <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm md:col-span-2">
-            <div className="flex items-center gap-2 text-blue-600 font-bold mb-3">
-              <Pill size={20} />
-              <h3>{T.dosage}</h3>
-            </div>
-            <div className="text-slate-600 text-sm leading-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
-               {info.dosage}
-            </div>
-          </motion.div>
+            {/* Dosage */}
+            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+              <div className="flex items-center gap-2 text-blue-600 font-bold mb-3">
+                <Pill size={20} />
+                <h3>{T.dosage}</h3>
+              </div>
+              <div className="text-slate-600 text-sm leading-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                {info.dosage}
+              </div>
+            </motion.div>
 
-          {/* Indications */}
-          <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <div className="flex items-center gap-2 text-indigo-600 font-bold mb-3">
-              <FileText size={20} />
-              <h3>{T.indications}</h3>
-            </div>
-            <p className="text-slate-600 text-sm leading-6">
-              {info.indications}
-            </p>
-          </motion.div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               {/* Indications */}
+                <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                  <div className="flex items-center gap-2 text-indigo-600 font-bold mb-3">
+                    <FileText size={20} />
+                    <h3>{T.indications}</h3>
+                  </div>
+                  <p className="text-slate-600 text-sm leading-6">
+                    {info.indications}
+                  </p>
+                </motion.div>
 
-           {/* Side Effects */}
-           <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <div className="flex items-center gap-2 text-purple-600 font-bold mb-3">
-              <Info size={20} />
-              <h3>{T.side_effects}</h3>
-            </div>
-            <p className="text-slate-600 text-sm leading-6">
-              {info.sideEffects}
-            </p>
-          </motion.div>
-
-          {/* Storage */}
-          <motion.div variants={itemVariants} className="bg-slate-50 rounded-2xl p-5 border border-slate-200 md:col-span-2 flex items-center gap-4">
-             <div className="bg-white p-3 rounded-full shadow-sm text-slate-500">
-                <Thermometer size={20} />
+                {/* Side Effects */}
+                <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                  <div className="flex items-center gap-2 text-purple-600 font-bold mb-3">
+                    <Info size={20} />
+                    <h3>{T.side_effects}</h3>
+                  </div>
+                  <p className="text-slate-600 text-sm leading-6">
+                    {info.sideEffects}
+                  </p>
+                </motion.div>
              </div>
-             <div>
-               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{T.storage}</h4>
-               <p className="text-slate-700 font-medium">{info.storage}</p>
+
+            {/* Storage */}
+            <motion.div variants={itemVariants} className="bg-slate-50 rounded-2xl p-5 border border-slate-200 flex items-center gap-4">
+              <div className="bg-white p-3 rounded-full shadow-sm text-slate-500">
+                  <Thermometer size={20} />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{T.storage}</h4>
+                <p className="text-slate-700 font-medium">{info.storage}</p>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Right Column: AI Chat Assistant (Takes 1/3 on large screens) */}
+          <motion.div variants={itemVariants} className="lg:col-span-1 h-full min-h-[400px]">
+             <div className="sticky top-20 h-[calc(100vh-140px)] min-h-[400px]">
+                <FollowUpChat 
+                  contextText={chatContext} 
+                  lang={lang} 
+                  suggestions={[T.suggested_q1_drug, T.suggested_q2_drug]}
+                />
              </div>
           </motion.div>
 
@@ -194,4 +249,4 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack, lang }) =>
       </motion.div>
     </div>
   );
-};
+});

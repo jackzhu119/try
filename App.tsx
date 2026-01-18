@@ -7,6 +7,7 @@ import { getDrugInfoFromImage, getDrugInfoFromText, analyzeSymptoms } from './se
 import { ResultCard } from './components/ResultCard';
 import { DiagnosisResultCard } from './components/DiagnosisResultCard';
 import { LoadingOverlay } from './components/LoadingOverlay';
+import { Toast, ToastType } from './components/Toast';
 
 type Tab = 'DRUG' | 'DIAGNOSIS';
 
@@ -48,6 +49,13 @@ function App() {
   
   const [loading, setLoading] = useState<LoadingState>({ isLoading: false, message: '' });
   
+  // Toast State
+  const [toast, setToast] = useState<{ message: string; type: ToastType; isVisible: boolean }>({
+    message: '',
+    type: 'info',
+    isVisible: false
+  });
+
   // Inputs
   const [searchQuery, setSearchQuery] = useState('');
   const [symptomsQuery, setSymptomsQuery] = useState('');
@@ -61,8 +69,17 @@ function App() {
 
   // --- Handlers ---
 
+  const showToast = (message: string, type: ToastType = 'info') => {
+    setToast({ message, type, isVisible: true });
+  };
+
+  const closeToast = () => {
+    setToast(prev => ({ ...prev, isVisible: false }));
+  };
+
   const toggleLanguage = () => {
     setLang(prev => prev === 'zh' ? 'en' : 'zh');
+    showToast(lang === 'zh' ? 'Switched to English' : '已切换至中文', 'success');
   };
 
   const handleDrugSearch = async (e: React.FormEvent) => {
@@ -75,7 +92,7 @@ function App() {
       setDrugInfo(info);
       setMode(AppMode.RESULT);
     } catch (error: any) {
-      alert(error.message || "Search failed");
+      showToast(error.message || "Search failed", 'error');
     } finally {
       setLoading({ isLoading: false, message: '' });
     }
@@ -95,7 +112,7 @@ function App() {
         setDrugInfo(info);
         setMode(AppMode.RESULT);
       } catch (error: any) {
-        alert(`${T.upload_fail}: ` + (error.message || "Error"));
+        showToast(`${T.upload_fail}: ` + (error.message || "Error"), 'error');
       } finally {
         setLoading({ isLoading: false, message: '' });
         if (drugFileInputRef.current) drugFileInputRef.current.value = '';
@@ -112,13 +129,14 @@ function App() {
     reader.onloadend = async () => {
         setDiagnosisImage(reader.result as string);
         if (diagnosisFileInputRef.current) diagnosisFileInputRef.current.value = '';
+        showToast(T.image_attached, 'success');
     };
     reader.readAsDataURL(file);
   };
 
   const handleSymptomAnalysis = async () => {
     if (!symptomsQuery.trim() && !diagnosisImage) {
-        alert(T.missing_input);
+        showToast(T.missing_input, 'error');
         return;
     }
 
@@ -128,7 +146,7 @@ function App() {
       setDiagnosisInfo(info);
       setMode(AppMode.DIAGNOSIS_RESULT);
     } catch (error: any) {
-       alert(`${T.diagnosis_fail}: ` + (error.message || "Error"));
+       showToast(`${T.diagnosis_fail}: ` + (error.message || "Error"), 'error');
     } finally {
       setLoading({ isLoading: false, message: '' });
     }
@@ -140,7 +158,6 @@ function App() {
     setMode(AppMode.HOME);
     // Performance Optimization: 
     // Delay clearing data to ensure the exit animation (AnimatePresence) has the data it needs to render.
-    // This also reduces the amount of state updates happening in a single frame.
     setTimeout(() => {
         setDrugInfo(null);
         setDiagnosisInfo(null);
@@ -152,6 +169,12 @@ function App() {
   return (
     <div className="min-h-screen text-slate-800 font-sans relative overflow-x-hidden flex flex-col">
       <AmbientBackground />
+      <Toast 
+        message={toast.message} 
+        type={toast.type} 
+        isVisible={toast.isVisible} 
+        onClose={closeToast} 
+      />
 
       <input type="file" ref={drugFileInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleDrugFileUpload} />
       <input type="file" ref={diagnosisFileInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleDiagnosisFileUpload} />

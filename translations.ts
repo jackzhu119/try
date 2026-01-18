@@ -53,7 +53,18 @@ export const t = {
     lifestyle: "通用生活建议",
     disclaimer_title: "免责声明：",
     disclaimer_text: "AI 分析结果仅供参考，不能替代专业医生的当面诊断。如果症状持续加重或出现呼吸困难、剧烈疼痛等情况，请立即前往医院就诊。",
-    back: "返回"
+    back: "返回",
+
+    // New Features
+    copy_report: "复制报告",
+    copied: "已复制到剪贴板",
+    ask_dr_ai: "咨询 AI 顾问",
+    chat_placeholder: "针对当前结果继续提问...",
+    chat_send: "发送",
+    suggested_q1_drug: "这个药能和牛奶一起吃吗？",
+    suggested_q2_drug: "如果我忘记吃药了怎么办？",
+    suggested_q1_diag: "我需要去医院挂什么科？",
+    suggested_q2_diag: "有什么饮食上的忌口吗？"
   },
   en: {
     title: "SmartMed Guide",
@@ -107,6 +118,17 @@ export const t = {
     lifestyle: "Lifestyle Advice",
     disclaimer_title: "Disclaimer:",
     disclaimer_text: "AI analysis is for reference only and cannot replace a professional doctor's diagnosis. If symptoms worsen or if you experience difficulty breathing or severe pain, please go to the hospital immediately.",
-    back: "Back"
+    back: "Back",
+
+    // New Features
+    copy_report: "Copy Report",
+    copied: "Copied to clipboard",
+    ask_dr_ai: "Ask Dr. AI",
+    chat_placeholder: "Ask follow-up questions...",
+    chat_send: "Send",
+    suggested_q1_drug: "Can I take this with milk?",
+    suggested_q2_drug: "What if I miss a dose?",
+    suggested_q1_diag: "Which hospital department should I visit?",
+    suggested_q2_diag: "Are there any dietary restrictions?"
   }
 };
