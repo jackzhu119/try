@@ -2,7 +2,8 @@ import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Camera, UploadCloud, Sparkles } from 'lucide-react';
 import { AppMode, DrugInfo, LoadingState } from './types';
-import { getDrugInfoFromImage, getDrugInfoFromText } from './services/geminiService';
+// Updated import to Qwen Service
+import { getDrugInfoFromImage, getDrugInfoFromText } from './services/qwenService';
 import { ResultCard } from './components/ResultCard';
 import { LoadingOverlay } from './components/LoadingOverlay';
 
@@ -209,8 +210,8 @@ function App() {
               className="mt-12 flex justify-center"
             >
                <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-200/50 backdrop-blur-sm border border-white/50 text-xs font-medium text-slate-500">
-                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_5px_#10b981]"></div>
-                 Powered by Gemini 3 Flash
+                 <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_5px_#6366f1]"></div>
+                 Powered by Qwen VL Max
                </div>
             </motion.div>
 
