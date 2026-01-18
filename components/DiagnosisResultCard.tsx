@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DiagnosisInfo } from '../types';
+import { DiagnosisInfo, Language } from '../types';
+import { t } from '../translations';
 import { 
   ArrowLeft, Volume2, StopCircle, Stethoscope, 
   Activity, Thermometer, ShieldAlert, Utensils, HeartPulse, Sparkles, AlertCircle
@@ -9,11 +10,13 @@ import {
 interface DiagnosisResultCardProps {
   info: DiagnosisInfo;
   onBack: () => void;
+  lang: Language;
 }
 
-export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, onBack }) => {
+export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, onBack, lang }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const T = t[lang];
 
   useEffect(() => {
     return () => {
@@ -28,7 +31,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
       return;
     }
     const utterance = new SpeechSynthesisUtterance(info.summary);
-    utterance.lang = 'zh-CN';
+    utterance.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
     utterance.rate = 1.0;
     utterance.onend = () => setIsPlaying(false);
     utterance.onerror = () => setIsPlaying(false);
@@ -108,7 +111,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
         </button>
         <span className="font-semibold text-slate-800 flex items-center gap-2">
            <Stethoscope size={18} className="text-blue-500"/>
-           AI 诊断报告
+           {T.diagnosis_report}
         </span>
         <div className="w-10"></div>
       </motion.div>
@@ -130,20 +133,20 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
           <div className="relative z-10">
             <div className="flex justify-between items-start mb-4">
               <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-white/10 flex items-center gap-1">
-                 {info.urgency === 'High' ? '⚠️ 建议就医' : info.urgency === 'Medium' ? '👀 密切观察' : '✅ 居家护理'}
+                 {info.urgency === 'High' ? T.urgency_high : info.urgency === 'Medium' ? T.urgency_med : T.urgency_low}
               </span>
               <button 
                 onClick={handlePlayAudio}
                 className="flex items-center gap-2 bg-white/90 hover:bg-white text-slate-800 px-3 py-1.5 rounded-full font-bold text-xs shadow-lg transition-all active:scale-95"
               >
                 {isPlaying ? <StopCircle size={14} /> : <Volume2 size={14} />}
-                <span>听报告</span>
+                <span>{T.play}</span>
               </button>
             </div>
             
             <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
               <Sparkles size={24} className="opacity-80"/>
-              初步诊断分析
+              {T.preliminary_analysis}
             </h1>
             <p className="text-white/90 leading-relaxed text-sm">
               {info.summary}
@@ -155,7 +158,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
         <motion.div variants={itemVariants}>
           <div className="flex items-center gap-2 mb-3 px-1">
              <ShieldAlert size={18} className="text-slate-500"/>
-             <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">可能的病因分析</h3>
+             <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{T.possible_causes}</h3>
           </div>
           
           {/* Tabs */}
@@ -182,7 +185,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
                       ? 'bg-blue-100 text-blue-700' 
                       : 'bg-slate-200 text-slate-500'
                   }`}>
-                    可能性: {condition.probability}
+                    {condition.probability}
                   </span>
                 </div>
               </button>
@@ -205,7 +208,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
                   <div>
                     <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-2">
                       <AlertCircle size={18} className="text-blue-500"/>
-                      病理分析
+                      {T.pathology}
                     </h4>
                     <p className="text-slate-600 text-sm leading-6 bg-slate-50 p-3 rounded-xl">
                       {selectedCondition.explanation}
@@ -219,7 +222,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
                     <div>
                       <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-3">
                         <Thermometer size={18} className="text-purple-500"/>
-                        推荐药物 (OTC)
+                        {T.rec_meds}
                       </h4>
                       {selectedCondition.medications.length > 0 ? (
                         <ul className="space-y-2">
@@ -231,7 +234,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
                           ))}
                         </ul>
                       ) : (
-                        <p className="text-sm text-slate-400 italic">暂无非处方药建议</p>
+                        <p className="text-sm text-slate-400 italic">{T.no_meds}</p>
                       )}
                     </div>
 
@@ -239,7 +242,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
                     <div>
                       <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-3">
                         <HeartPulse size={18} className="text-emerald-500"/>
-                        辅助治疗
+                        {T.adj_treatment}
                       </h4>
                        {selectedCondition.treatments.length > 0 ? (
                         <ul className="space-y-2">
@@ -251,7 +254,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
                           ))}
                         </ul>
                        ) : (
-                        <p className="text-sm text-slate-400 italic">暂无特殊物理治疗建议</p>
+                        <p className="text-sm text-slate-400 italic">{T.no_treatments}</p>
                        )}
                     </div>
                   </div>
@@ -265,7 +268,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
         <motion.div variants={itemVariants} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100">
           <div className="flex items-center gap-2 text-indigo-700 font-bold mb-2">
             <Utensils size={20} />
-            <h3>通用生活建议</h3>
+            <h3>{T.lifestyle}</h3>
           </div>
           <p className="text-slate-700 text-sm leading-6">
             {info.lifestyle_advice}
@@ -276,7 +279,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({ info, 
         <motion.div variants={itemVariants} className="flex gap-3 bg-slate-100 rounded-xl p-4 text-xs text-slate-500 items-start">
            <ShieldAlert size={16} className="shrink-0 mt-0.5" />
            <p>
-             <strong>免责声明：</strong> AI 分析结果仅供参考，不能替代专业医生的当面诊断。如果症状持续加重或出现呼吸困难、剧烈疼痛等情况，请立即前往医院就诊。
+             <strong>{T.disclaimer_title}</strong> {T.disclaimer_text}
            </p>
         </motion.div>
 

@@ -1,31 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Brain, Database, ScanLine, CheckCircle2, Stethoscope, HeartPulse, FileText, Search } from 'lucide-react';
+import { Language } from '../types';
 
 interface LoadingOverlayProps {
   message?: string;
   type: 'DRUG' | 'DIAGNOSIS';
+  lang: Language;
 }
 
-export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ type }) => {
+export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ type, lang }) => {
   const [phase, setPhase] = useState(0);
 
-  // Configuration for Drug Search Mode (Blue/Cyan/Purple Theme)
-  const drugPhases = [
-    { text: "启动视觉神经...", icon: ScanLine, color: "text-blue-400" },
-    { text: "解析药品特征...", icon: Search, color: "text-cyan-400" },
-    { text: "检索全球药典...", icon: Database, color: "text-purple-400" },
-    { text: "生成用药指引...", icon: FileText, color: "text-indigo-400" },
-    { text: "即将完成...", icon: CheckCircle2, color: "text-blue-500" },
+  // Configuration for Drug Search Mode
+  const drugPhases = lang === 'zh' ? [
+    { text: "启动视觉神经...", icon: ScanLine },
+    { text: "解析药品特征...", icon: Search },
+    { text: "检索全球药典...", icon: Database },
+    { text: "生成用药指引...", icon: FileText },
+    { text: "即将完成...", icon: CheckCircle2 },
+  ] : [
+    { text: "Initializing Vision...", icon: ScanLine },
+    { text: "Analyzing Features...", icon: Search },
+    { text: "Searching Database...", icon: Database },
+    { text: "Generating Guide...", icon: FileText },
+    { text: "Finalizing...", icon: CheckCircle2 },
   ];
 
-  // Configuration for Diagnosis Mode (Indigo/Rose/Amber Theme)
-  const diagnosisPhases = [
-    { text: "连接 AI 医疗大脑...", icon: Brain, color: "text-indigo-400" },
-    { text: "分析症状描述...", icon: Stethoscope, color: "text-rose-400" },
-    { text: "匹配病理模型...", icon: Activity, color: "text-amber-400" },
-    { text: "生成诊断建议...", icon: HeartPulse, color: "text-emerald-400" },
-    { text: "整理康复方案...", icon: CheckCircle2, color: "text-indigo-500" },
+  // Configuration for Diagnosis Mode
+  const diagnosisPhases = lang === 'zh' ? [
+    { text: "连接 AI 医疗大脑...", icon: Brain },
+    { text: "分析症状描述...", icon: Stethoscope },
+    { text: "匹配病理模型...", icon: Activity },
+    { text: "生成诊断建议...", icon: HeartPulse },
+    { text: "整理康复方案...", icon: CheckCircle2 },
+  ] : [
+    { text: "Connecting AI Brain...", icon: Brain },
+    { text: "Analyzing Symptoms...", icon: Stethoscope },
+    { text: "Matching Pathology...", icon: Activity },
+    { text: "Generating Advice...", icon: HeartPulse },
+    { text: "Creating Plan...", icon: CheckCircle2 },
   ];
 
   const currentPhases = type === 'DIAGNOSIS' ? diagnosisPhases : drugPhases;
@@ -52,7 +66,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ type }) => {
   useEffect(() => {
     const interval = setInterval(() => {
       setPhase((p) => (p < currentPhases.length - 1 ? p + 1 : p));
-    }, 1500); // Slightly faster transitions
+    }, 1500); 
     return () => clearInterval(interval);
   }, [currentPhases.length]);
 

@@ -1,76 +1,65 @@
-import { DrugInfo, DiagnosisInfo } from "../types";
+import { DrugInfo, DiagnosisInfo, Language } from "../types";
 
-// Helper to clean JSON string if it's wrapped in markdown code blocks
+// Helper to clean JSON string
 function cleanJsonString(str: string): string {
   if (!str) return "";
-  // Remove ```json ... ``` or ``` ... ```
   let cleaned = str.replace(/^```(json)?\s*/, "").replace(/\s*```$/, "");
   return cleaned.trim();
 }
 
 // --- Drug Info Prompts ---
 
-const DRUG_SYSTEM_PROMPT = `
-你是一位拥有20年经验的资深临床药剂师。请根据用户的输入（药品名称或药品图片），生成一份**极其详尽且专业**的药品说明书。
+const getDrugSystemPrompt = (lang: Language) => `
+You are a senior clinical pharmacist with 20 years of experience. Based on the user's input (drug name or image), generate an extremely detailed and professional drug instruction manual.
 
-请务必返回合法的 JSON 格式，不要包含 Markdown 格式标记，Schema 如下：
+**CRITICAL INSTRUCTION**: You must respond in **${lang === 'zh' ? 'SIMPLIFIED CHINESE (简体中文)' : 'ENGLISH'}** only.
+
+Please return a valid JSON object. Do not include Markdown formatting. Schema:
 {
-  "name": "药品通用名 (商品名) - 英文名，如果无法识别或图片不清晰，请返回 '未识别'",
-  "indications": "详细列出适应症，请尽量全面。",
-  "dosage": "详细的用法用量（包括成人、儿童、特殊人群），请分点描述。",
-  "contraindications": "详细的禁忌症，包括特定人群和疾病。",
-  "storage": "具体的贮藏方式（温度、避光等）。",
-  "sideEffects": "详细列出常见和罕见的不良反应。",
-  "usage_tips": "这是非常重要的一部分。请给出3-5条生活化的温馨提示，例如：服药期间能不能喝酒？饭前还是饭后吃？吃药期间忌口什么？如果漏服了怎么办？",
-  "summary": "一段约150字的通俗易懂的总结，语气亲切温暖，适合语音播报，概括核心功效和最关键的注意事项。"
+  "name": "Drug Generic Name (Brand Name) ${lang === 'zh' ? '- English Name' : ''}. If unrecognized, return '${lang === 'zh' ? '未识别' : 'Unrecognized'}'",
+  "indications": "Detailed list of indications.",
+  "dosage": "Detailed dosage and usage (adults, children, special groups).",
+  "contraindications": "Detailed contraindications.",
+  "storage": "Specific storage methods.",
+  "sideEffects": "Common and rare side effects.",
+  "usage_tips": "3-5 practical, life-friendly tips (alcohol? with food? missed dose?).",
+  "summary": "A 150-word warm, easy-to-understand summary suitable for voice playback."
 }
 `;
 
 // --- Diagnosis Prompts ---
 
-const DIAGNOSIS_SYSTEM_PROMPT = `
-你是一位经验丰富的全科医生 (General Practitioner)。用户会描述他们的身体症状，可能会提供患处图片。
-请根据症状进行**鉴别诊断**，分析**2-3种**最可能的病因，并分别提供治疗方案。
+const getDiagnosisSystemPrompt = (lang: Language) => `
+You are an experienced General Practitioner. The user will describe symptoms and may provide an image.
+Perform a differential diagnosis, analyzing 2-3 most likely causes.
 
-**重要免责声明：你的回答必须基于医学常识，但必须在 JSON 之外隐式包含“仅供参考，不作为最终医疗诊断”的原则。**
+**CRITICAL INSTRUCTION**: You must respond in **${lang === 'zh' ? 'SIMPLIFIED CHINESE (简体中文)' : 'ENGLISH'}** only.
+**DISCLAIMER**: Your response is for reference only.
 
-请务必返回合法的 JSON 格式，不要包含 Markdown 格式标记，Schema 如下：
+Please return a valid JSON object. Schema:
 {
   "urgency": "Low" | "Medium" | "High",
-  "urgency_reason": "判断紧急程度的理由（例如：是否需要立即就医）。",
-  "summary": "一段约100字的总体摘要，语气专业但关怀，适合语音播报，概括最可能的猜测和建议。",
+  "urgency_reason": "Reason for urgency assessment.",
+  "summary": "A 100-word professional yet caring summary for voice playback.",
   "potential_conditions": [
     {
-      "name": "疾病名称 A (例如: 紧张性头痛)",
-      "probability": "高/中/低",
-      "explanation": "为什么认为是这个病？结合用户症状（及图片特征）进行解释。",
-      "medications": ["推荐药物1 (OTC)", "推荐药物2"],
-      "treatments": ["物理治疗手段1", "休息建议"]
-    },
-    {
-      "name": "疾病名称 B (例如: 偏头痛)",
-      "probability": "中/低",
-      "explanation": "另一种可能性，与 A 的区别。",
-      "medications": ["针对 B 的药物"],
-      "treatments": ["针对 B 的治疗"]
+      "name": "Condition Name",
+      "probability": "${lang === 'zh' ? '高/中/低' : 'High/Medium/Low'}",
+      "explanation": "Why this condition? Combine symptom and visual analysis.",
+      "medications": ["Medication 1 (OTC)", "Medication 2"],
+      "treatments": ["Physical therapy 1", "Rest advice"]
     }
   ],
-  "lifestyle_advice": "关于饮食、休息、运动的通用康复建议，适用于上述所有情况。"
+  "lifestyle_advice": "General diet/rest/exercise advice applicable to all possibilities."
 }
-
-判断标准：
-- Low: 普通感冒、轻微外伤等可自愈或居家观察的情况。
-- Medium: 需要去医院检查但无生命危险，如持续发烧、未知皮疹。
-- High: 剧烈疼痛、呼吸困难、高烧不退等需要急诊的情况。
 `;
 
 async function callQwenApi(messages: any[], model: string): Promise<any> {
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
-    throw new Error("Missing API Key. Please configure process.env.API_KEY.");
+    throw new Error("Missing API Key.");
   }
 
-  // Use the proxy endpoint we configured in vite.config.ts / vercel.json
   const endpoint = "/api/qwen/chat/completions";
 
   const response = await fetch(endpoint, {
@@ -83,93 +72,84 @@ async function callQwenApi(messages: any[], model: string): Promise<any> {
       model: model,
       messages: messages,
       temperature: 0.5,
-      response_format: { type: "json_object" } // Qwen supports json mode hints
+      response_format: { type: "json_object" }
     })
   });
 
   if (!response.ok) {
-    const errorBody = await response.text();
-    console.error("Qwen API Error:", errorBody);
-    throw new Error(`AI 服务暂时不可用 (${response.status})`);
+    throw new Error(`AI Service Unavailable (${response.status})`);
   }
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content;
 
   if (!content) {
-    throw new Error("AI 未返回有效内容");
+    throw new Error("No content returned from AI");
   }
 
   try {
     const cleanedJson = cleanJsonString(content);
     return JSON.parse(cleanedJson);
   } catch (e) {
-    console.error("JSON Parse Error:", e, "Content:", content);
-    throw new Error("解析 AI 返回数据失败");
+    console.error("JSON Parse Error:", e);
+    throw new Error("Failed to parse AI response");
   }
 }
 
-export const getDrugInfoFromText = async (query: string): Promise<DrugInfo> => {
+export const getDrugInfoFromText = async (query: string, lang: Language): Promise<DrugInfo> => {
   const messages = [
-    { role: "system", content: DRUG_SYSTEM_PROMPT },
-    { role: "user", content: `请详细查询药品：${query}，并提供全面的用药指导。` }
+    { role: "system", content: getDrugSystemPrompt(lang) },
+    { role: "user", content: lang === 'zh' ? `查询药品：${query}` : `Identify drug: ${query}` }
   ];
-  // Speed Optimization: Use qwen-turbo for text queries
   const result = await callQwenApi(messages, "qwen-turbo");
-  if (result.name === "未识别" || result.name.includes("未识别")) {
-      throw new Error("无法识别该药品，请确保名称正确。");
+  if (result.name.includes("未识别") || result.name.includes("Unrecognized")) {
+      throw new Error(lang === 'zh' ? "无法识别该药品" : "Drug not recognized");
   }
   return result as DrugInfo;
 };
 
-export const getDrugInfoFromImage = async (base64Image: string): Promise<DrugInfo> => {
+export const getDrugInfoFromImage = async (base64Image: string, lang: Language): Promise<DrugInfo> => {
   const messages = [
-    { role: "system", content: DRUG_SYSTEM_PROMPT },
+    { role: "system", content: getDrugSystemPrompt(lang) },
     { 
       role: "user", 
       content: [
-        { type: "text", text: "请精准识别这张图片中的药品，提取所有文字信息，并生成详细的说明书和用药建议。" },
-        { 
-          type: "image_url", 
-          image_url: { 
-            url: base64Image 
-          } 
-        }
+        { type: "text", text: lang === 'zh' ? "识别图片中的药品" : "Identify the drug in this image" },
+        { type: "image_url", image_url: { url: base64Image } }
       ] 
     }
   ];
   const result = await callQwenApi(messages, "qwen-vl-max");
-  if (result.name === "未识别" || result.name.includes("未识别")) {
-      throw new Error("无法识别该药品，请确保图片清晰。");
+  if (result.name.includes("未识别") || result.name.includes("Unrecognized")) {
+      throw new Error(lang === 'zh' ? "无法识别该药品" : "Drug not recognized");
   }
   return result as DrugInfo;
 };
 
-export const analyzeSymptoms = async (symptoms: string, base64Image?: string): Promise<DiagnosisInfo> => {
+export const analyzeSymptoms = async (symptoms: string, base64Image: string | undefined, lang: Language): Promise<DiagnosisInfo> => {
   let messages;
-  let model = "qwen-plus"; // Default high intelligence model
+  let model = "qwen-plus";
+
+  const userText = lang === 'zh' 
+    ? `我的症状：${symptoms || "(仅图片)"}` 
+    : `My symptoms: ${symptoms || "(Image only)"}`;
 
   if (base64Image) {
-    model = "qwen-vl-max"; // Switch to Vision model if image provided
+    model = "qwen-vl-max";
     messages = [
-      { role: "system", content: DIAGNOSIS_SYSTEM_PROMPT },
+      { role: "system", content: getDiagnosisSystemPrompt(lang) },
       { 
         role: "user", 
         content: [
-          { type: "text", text: `我的症状描述如下：${symptoms || "（用户未提供文字，请仅根据图片判断）"}。请结合图片中的视觉特征（如伤口、皮疹、红肿等）和文字描述进行鉴别诊断。` },
-          { 
-            type: "image_url", 
-            image_url: { 
-              url: base64Image 
-            } 
-          }
+          { type: "text", text: userText },
+          { type: "image_url", image_url: { url: base64Image } }
         ] 
       }
     ];
   } else {
     messages = [
-      { role: "system", content: DIAGNOSIS_SYSTEM_PROMPT },
-      { role: "user", content: `我的症状如下：${symptoms}。请进行鉴别诊断。` }
+      { role: "system", content: getDiagnosisSystemPrompt(lang) },
+      { role: "user", content: userText }
     ];
   }
 

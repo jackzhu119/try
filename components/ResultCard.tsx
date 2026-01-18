@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { DrugInfo } from '../types';
+import { DrugInfo, Language } from '../types';
+import { t } from '../translations';
 import { 
   ArrowLeft, Volume2, StopCircle, AlertTriangle, 
   Pill, FileText, Thermometer, Info, ShieldCheck, HeartPulse
@@ -9,10 +10,12 @@ import {
 interface ResultCardProps {
   info: DrugInfo;
   onBack: () => void;
+  lang: Language;
 }
 
-export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack }) => {
+export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack, lang }) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const T = t[lang];
 
   useEffect(() => {
     return () => {
@@ -28,7 +31,8 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack }) => {
     }
 
     const utterance = new SpeechSynthesisUtterance(info.summary);
-    utterance.lang = 'zh-CN';
+    // Auto-detect voice language based on text, or default to current lang
+    utterance.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
     utterance.rate = 1.0;
     utterance.onend = () => setIsPlaying(false);
     utterance.onerror = () => setIsPlaying(false);
@@ -64,7 +68,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack }) => {
           <ArrowLeft size={24} />
         </button>
         <span className="font-semibold text-slate-800 truncate max-w-[200px]">{info.name}</span>
-        <div className="w-10"></div> {/* Spacer for centering */}
+        <div className="w-10"></div>
       </motion.div>
 
       {/* Main Content Area */}
@@ -75,7 +79,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack }) => {
         animate="visible"
       >
         
-        {/* 1. Hero Summary Card (Top Priority) */}
+        {/* 1. Hero Summary Card */}
         <motion.div variants={itemVariants} className="bg-gradient-to-br from-indigo-600 to-blue-500 rounded-3xl p-6 text-white shadow-xl shadow-blue-500/20 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-3 opacity-20">
             <HeartPulse size={120} />
@@ -84,7 +88,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack }) => {
           <div className="relative z-10">
             <div className="flex justify-between items-start mb-4">
               <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium border border-white/10">
-                AI 智能摘要
+                {T.ai_summary}
               </span>
               <button 
                 onClick={handlePlayAudio}
@@ -92,11 +96,11 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack }) => {
               >
                 {isPlaying ? (
                   <>
-                    <StopCircle size={16} /> <span>停止</span>
+                    <StopCircle size={16} /> <span>{T.stop}</span>
                   </>
                 ) : (
                   <>
-                    <Volume2 size={16} /> <span>播报</span>
+                    <Volume2 size={16} /> <span>{T.play}</span>
                   </>
                 )}
               </button>
@@ -116,18 +120,18 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack }) => {
           <motion.div variants={itemVariants} className="bg-red-50 rounded-2xl p-5 border border-red-100 flex flex-col gap-2">
             <div className="flex items-center gap-2 text-red-600 font-bold">
               <AlertTriangle size={20} />
-              <h3>禁忌症</h3>
+              <h3>{T.contraindications}</h3>
             </div>
             <p className="text-slate-700 text-sm leading-6">
               {info.contraindications}
             </p>
           </motion.div>
 
-          {/* Usage Tips (Highlighted) */}
+          {/* Usage Tips */}
           <motion.div variants={itemVariants} className="bg-amber-50 rounded-2xl p-5 border border-amber-100 flex flex-col gap-2">
             <div className="flex items-center gap-2 text-amber-600 font-bold">
               <ShieldCheck size={20} />
-              <h3>药师温馨提示</h3>
+              <h3>{T.tips}</h3>
             </div>
             <p className="text-slate-700 text-sm leading-6 whitespace-pre-line">
               {info.usage_tips}
@@ -138,7 +142,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack }) => {
           <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm md:col-span-2">
             <div className="flex items-center gap-2 text-blue-600 font-bold mb-3">
               <Pill size={20} />
-              <h3>用法用量</h3>
+              <h3>{T.dosage}</h3>
             </div>
             <div className="text-slate-600 text-sm leading-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
                {info.dosage}
@@ -149,7 +153,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack }) => {
           <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
             <div className="flex items-center gap-2 text-indigo-600 font-bold mb-3">
               <FileText size={20} />
-              <h3>适应症</h3>
+              <h3>{T.indications}</h3>
             </div>
             <p className="text-slate-600 text-sm leading-6">
               {info.indications}
@@ -160,7 +164,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack }) => {
            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
             <div className="flex items-center gap-2 text-purple-600 font-bold mb-3">
               <Info size={20} />
-              <h3>不良反应</h3>
+              <h3>{T.side_effects}</h3>
             </div>
             <p className="text-slate-600 text-sm leading-6">
               {info.sideEffects}
@@ -173,7 +177,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack }) => {
                 <Thermometer size={20} />
              </div>
              <div>
-               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">贮藏方式</h4>
+               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{T.storage}</h4>
                <p className="text-slate-700 font-medium">{info.storage}</p>
              </div>
           </motion.div>
