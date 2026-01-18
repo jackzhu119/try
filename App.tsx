@@ -140,7 +140,7 @@ function App() {
 
       <div className="relative z-10 min-h-screen flex flex-col items-center transition-all">
         
-        {loading.isLoading && <LoadingOverlay message={loading.message} />}
+        {loading.isLoading && <LoadingOverlay message={loading.message} type={activeTab} />}
 
         {/* --- RESULT VIEW --- */}
         <AnimatePresence mode="wait">
