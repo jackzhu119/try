@@ -1,131 +1,48 @@
-import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { DrugInfo } from "../types";
 
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-// System instruction to ensure consistent medical data extraction
-const DRUG_ANALYSIS_SYSTEM_PROMPT = `
-You are a professional pharmacist assistant. 
-Your goal is to extract medicine information and return it in a structured JSON format.
-If the user provides an image, identify the medicine from the packaging text or barcode.
-If the user provides text, look up the medicine details.
-Always respond in Chinese (Simplified).
-Return specific fields: name, indications, dosage, contraindications, sideEffects, storage, and a short 'summary' for reading aloud.
-`;
+// 模拟数据库数据
+const MOCK_DATA: DrugInfo = {
+  name: "布洛芬缓释胶囊 (演示数据)",
+  indications: "用于缓解轻至中度疼痛如头痛、关节痛、偏头痛、牙痛、肌肉痛、神经痛、痛经。也用于普通感冒或流行性感冒引起的发热。",
+  dosage: "口服。成人，一次1粒，一日2次（早晚各一次）。",
+  contraindications: "1. 对其他非甾体抗炎药过敏者禁用。\n2. 孕妇及哺乳期妇女禁用。\n3. 对阿司匹林过敏的哮喘患者禁用。",
+  storage: "密封，在干燥处保存。",
+  sideEffects: "少数病人可出现恶心、呕吐、胃烧灼感或轻度消化不良、胃肠道溃疡及出血等。",
+  summary: "这是布洛芬缓释胶囊。主要用于止痛和退烧。成人通常早晚各吃一粒。孕妇、哺乳期妇女以及对阿司匹林过敏的人请不要服用。"
+};
 
 /**
- * Identifies drug info from text query.
+ * 模拟从文本获取药品信息
  */
 export const getDrugInfoFromText = async (query: string): Promise<DrugInfo> => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Please provide the instruction leaflet details for the medicine: "${query}".`,
-      config: {
-        systemInstruction: DRUG_ANALYSIS_SYSTEM_PROMPT,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            name: { type: Type.STRING, description: "Drug brand and generic name" },
-            indications: { type: Type.STRING, description: "What it treats" },
-            dosage: { type: Type.STRING, description: "How to take it" },
-            contraindications: { type: Type.STRING, description: "Who should not take it" },
-            sideEffects: { type: Type.STRING, description: "Common side effects" },
-            storage: { type: Type.STRING, description: "Storage instructions" },
-            summary: { type: Type.STRING, description: "A friendly, conversational summary (approx 50 words) suitable for reading aloud to a patient." },
-          },
-          required: ["name", "indications", "dosage", "summary"],
-        },
-      },
-    });
-
-    const text = response.text;
-    if (!text) throw new Error("No data returned");
-    return JSON.parse(text) as DrugInfo;
-  } catch (error) {
-    console.error("Gemini Text Error:", error);
-    throw new Error("无法获取药品信息，请重试。");
-  }
+  console.log("Mocking text search for:", query);
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  // 如果用户搜特定词，可以扩展这里的逻辑，目前统一返回布洛芬作为演示
+  return {
+    ...MOCK_DATA,
+    name: query.length > 1 ? `${query} (演示结果)` : MOCK_DATA.name
+  };
 };
 
 /**
- * Identifies drug info from an image (base64).
+ * 模拟从图片获取药品信息
  */
 export const getDrugInfoFromImage = async (base64Image: string): Promise<DrugInfo> => {
-  try {
-    // Clean base64 string if it contains header
-    const cleanBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              mimeType: 'image/jpeg',
-              data: cleanBase64
-            }
-          },
-          {
-            text: "Identify this medicine. Read the name or barcode visible on the box. Provide the full instruction manual details."
-          }
-        ]
-      },
-      config: {
-        systemInstruction: DRUG_ANALYSIS_SYSTEM_PROMPT,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            name: { type: Type.STRING },
-            indications: { type: Type.STRING },
-            dosage: { type: Type.STRING },
-            contraindications: { type: Type.STRING },
-            sideEffects: { type: Type.STRING },
-            storage: { type: Type.STRING },
-            summary: { type: Type.STRING },
-          },
-          required: ["name", "indications", "dosage", "summary"],
-        },
-      },
-    });
-
-    const text = response.text;
-    if (!text) throw new Error("No data returned");
-    return JSON.parse(text) as DrugInfo;
-  } catch (error) {
-    console.error("Gemini Vision Error:", error);
-    throw new Error("无法识别图片中的药品，请确保图片清晰。");
-  }
+  console.log("Mocking image analysis");
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  return {
+    ...MOCK_DATA,
+    name: "智能识别结果: 布洛芬缓释胶囊"
+  };
 };
 
 /**
- * Generates audio from text using Gemini TTS.
+ * 模拟生成语音 (不再使用，由前端直接合成)
  */
 export const generateDrugAudio = async (textToSay: string): Promise<string> => {
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: textToSay }] }],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Kore' }, // 'Kore' is usually a calm voice
-          },
-        },
-      },
-    });
-
-    const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (!audioData) {
-      throw new Error("No audio data generated");
-    }
-    return audioData;
-  } catch (error) {
-    console.error("Gemini TTS Error:", error);
-    throw new Error("语音生成失败");
-  }
+  return ""; 
 };

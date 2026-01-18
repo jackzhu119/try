@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DrugInfo } from '../types';
-import { generateDrugAudio } from '../services/geminiService';
-import { playAudio } from '../services/audioUtils';
 
 interface ResultCardProps {
   info: DrugInfo;
@@ -10,36 +8,37 @@ interface ResultCardProps {
 
 export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
-  const [stopAudio, setStopAudio] = useState<(() => void) | null>(null);
 
-  const handlePlayAudio = async () => {
-    if (isPlaying && stopAudio) {
-      stopAudio();
+  // Stop audio when component unmounts
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  const handlePlayAudio = () => {
+    if (isPlaying) {
+      window.speechSynthesis.cancel();
       setIsPlaying(false);
-      setStopAudio(null);
       return;
     }
 
-    try {
-      setIsGeneratingAudio(true);
-      // Generate TTS using the summary field
-      const audioBase64 = await generateDrugAudio(info.summary);
-      
-      setIsGeneratingAudio(false);
-      setIsPlaying(true);
-      
-      const stopFn = await playAudio(audioBase64);
-      setStopAudio(() => () => {
-        stopFn();
-        setIsPlaying(false);
-        setStopAudio(null);
-      });
-    } catch (err) {
-      console.error(err);
-      setIsGeneratingAudio(false);
-      alert("无法播放语音，请稍后再试。");
-    }
+    const utterance = new SpeechSynthesisUtterance(info.summary);
+    utterance.lang = 'zh-CN'; // 设置为中文
+    utterance.rate = 1.0; // 语速
+    utterance.pitch = 1.0; // 音调
+
+    utterance.onend = () => {
+      setIsPlaying(false);
+    };
+
+    utterance.onerror = (e) => {
+      console.error("Speech synthesis error:", e);
+      setIsPlaying(false);
+    };
+
+    setIsPlaying(true);
+    window.speechSynthesis.speak(utterance);
   };
 
   return (
@@ -62,26 +61,20 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack }) => {
       {/* Content */}
       <div className="pt-12 px-6 pb-6 flex-1 overflow-y-auto no-scrollbar">
         <h1 className="text-2xl font-bold text-slate-800 mb-1">{info.name}</h1>
-        <p className="text-sm text-slate-500 mb-6">智能识别结果</p>
+        <p className="text-sm text-slate-500 mb-6">智能识别结果 (演示模式)</p>
 
         {/* Audio Player Button */}
         <button
           onClick={handlePlayAudio}
-          disabled={isGeneratingAudio}
           className={`w-full mb-6 py-4 rounded-xl flex items-center justify-center space-x-3 transition-all transform active:scale-95 shadow-lg ${
             isPlaying 
               ? 'bg-red-50 text-red-600 border border-red-200' 
               : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'
           }`}
         >
-           {isGeneratingAudio ? (
-             <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-             </svg>
-           ) : isPlaying ? (
+           {isPlaying ? (
             <>
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
               </svg>
