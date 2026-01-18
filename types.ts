@@ -9,15 +9,20 @@ export interface DrugInfo {
   summary: string;
 }
 
+export interface ConditionDetail {
+  name: string;             // 疾病名称 (e.g. "偏头痛")
+  probability: string;      // 可能性描述 (e.g. "高", "中", "低")
+  explanation: string;      // 针对该特定疾病的解释
+  medications: string[];    // 针对该特定疾病的药物
+  treatments: string[];     // 针对该特定疾病的物理治疗
+}
+
 export interface DiagnosisInfo {
-  conditions: string[];      // 可能的疾病名称列表
-  explanation: string;       // 病情分析/原因
-  medications: string[];     // 推荐的非处方药(OTC)
-  treatments: string[];      // 物理治疗/非药物治疗建议
-  lifestyle_advice: string;  // 生活饮食建议
-  urgency: 'Low' | 'Medium' | 'High'; // 紧急程度
+  urgency: 'Low' | 'Medium' | 'High'; // 总体紧急程度
   urgency_reason: string;    // 判断紧急程度的理由
-  summary: string;           // 用于语音播报的总结
+  summary: string;           // 总体语音播报总结
+  potential_conditions: ConditionDetail[]; // 多种可能的病因详情
+  lifestyle_advice: string;  // 通用的生活饮食建议 (适用于所有可能性)
 }
 
 export enum AppMode {

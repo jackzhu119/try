@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Camera, Sparkles, Stethoscope, Pill, ArrowRight, Activity, ScanLine } from 'lucide-react';
+import { Search, Camera, Sparkles, Stethoscope, Pill, ArrowRight, Activity, ScanLine, ImagePlus, X } from 'lucide-react';
 import { AppMode, DrugInfo, DiagnosisInfo, LoadingState } from './types';
 import { getDrugInfoFromImage, getDrugInfoFromText, analyzeSymptoms } from './services/qwenService';
 import { ResultCard } from './components/ResultCard';
@@ -23,8 +23,11 @@ function App() {
   // Inputs
   const [searchQuery, setSearchQuery] = useState('');
   const [symptomsQuery, setSymptomsQuery] = useState('');
+  const [diagnosisImage, setDiagnosisImage] = useState<string | null>(null);
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Refs for file inputs
+  const drugFileInputRef = useRef<HTMLInputElement>(null);
+  const diagnosisFileInputRef = useRef<HTMLInputElement>(null);
 
   // --- Handlers ---
 
@@ -44,7 +47,7 @@ function App() {
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDrugFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -61,18 +64,35 @@ function App() {
         alert("识别失败: " + (error.message || "请确保图片清晰"));
       } finally {
         setLoading({ isLoading: false, message: '' });
-        if (fileInputRef.current) fileInputRef.current.value = '';
+        if (drugFileInputRef.current) drugFileInputRef.current.value = '';
       }
     };
     reader.readAsDataURL(file);
   };
 
+  const handleDiagnosisFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Just read and store the image preview, don't submit yet
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+        setDiagnosisImage(reader.result as string);
+        if (diagnosisFileInputRef.current) diagnosisFileInputRef.current.value = '';
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSymptomAnalysis = async () => {
-    if (!symptomsQuery.trim()) return;
+    if (!symptomsQuery.trim() && !diagnosisImage) {
+        alert("请描述症状或上传图片");
+        return;
+    }
 
     setLoading({ isLoading: true, message: 'AI 医生正在分析病情...' });
     try {
-      const info = await analyzeSymptoms(symptomsQuery);
+      // Pass both text and optional image
+      const info = await analyzeSymptoms(symptomsQuery, diagnosisImage || undefined);
       setDiagnosisInfo(info);
       setMode(AppMode.DIAGNOSIS_RESULT);
     } catch (error: any) {
@@ -82,14 +102,15 @@ function App() {
     }
   };
 
-  const triggerCamera = () => {
-    fileInputRef.current?.click();
-  };
+  const clearDiagnosisImage = () => {
+      setDiagnosisImage(null);
+  }
 
   const handleBack = () => {
     setMode(AppMode.HOME);
     setDrugInfo(null);
     setDiagnosisInfo(null);
+    // Optional: Clear inputs on back? Let's keep them for now for UX
   };
 
   // --- Components ---
@@ -129,13 +150,22 @@ function App() {
     <div className="min-h-screen text-slate-800 font-sans relative overflow-x-hidden">
       <AmbientBackground />
 
+      {/* Hidden File Inputs */}
       <input
         type="file"
-        ref={fileInputRef}
+        ref={drugFileInputRef}
         accept="image/*"
         capture="environment" 
         className="hidden"
-        onChange={handleFileUpload}
+        onChange={handleDrugFileUpload}
+      />
+       <input
+        type="file"
+        ref={diagnosisFileInputRef}
+        accept="image/*"
+        capture="environment" 
+        className="hidden"
+        onChange={handleDiagnosisFileUpload}
       />
 
       <div className="relative z-10 min-h-screen flex flex-col items-center transition-all">
@@ -241,7 +271,7 @@ function App() {
                     >
                        {/* Scan Button */}
                       <button
-                        onClick={triggerCamera}
+                        onClick={() => drugFileInputRef.current?.click()}
                         className="w-full group relative overflow-hidden bg-slate-900 text-white p-8 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-[1.01] active:scale-[0.99] transition-all duration-300"
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[length:200%_auto] animate-gradient"></div>
@@ -296,9 +326,11 @@ function App() {
                       className="bg-white/60 backdrop-blur-xl rounded-[2rem] p-1 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50"
                     >
                       <div className="p-5 space-y-4">
-                        <div className="flex items-center gap-2 text-indigo-900 font-semibold mb-2 px-1">
-                           <Sparkles size={18} className="text-indigo-500" />
-                           <span>描述您的症状</span>
+                        <div className="flex justify-between items-center px-1">
+                           <div className="flex items-center gap-2 text-indigo-900 font-semibold">
+                              <Sparkles size={18} className="text-indigo-500" />
+                              <span>描述症状 / 上传图片</span>
+                           </div>
                         </div>
                         
                         <div className="relative group">
@@ -309,18 +341,53 @@ function App() {
                             className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl blur opacity-30 group-focus-within:opacity-75 transition duration-500"
                           ></motion.div>
                           
-                          <textarea
-                            value={symptomsQuery}
-                            onChange={(e) => setSymptomsQuery(e.target.value)}
-                            placeholder="请详细描述您的身体不适，例如：&#10;“发烧38度，伴有头痛和流鼻涕，已经持续两天了...”"
-                            rows={6}
-                            className="relative w-full bg-white text-slate-800 text-lg rounded-xl p-4 focus:outline-none resize-none placeholder:text-slate-400"
-                          />
+                          <div className="relative bg-white rounded-xl overflow-hidden">
+                              <textarea
+                                value={symptomsQuery}
+                                onChange={(e) => setSymptomsQuery(e.target.value)}
+                                placeholder="请描述您的不适（如发烧、皮疹等）..."
+                                rows={diagnosisImage ? 4 : 6}
+                                className="w-full bg-transparent text-slate-800 text-lg p-4 focus:outline-none resize-none placeholder:text-slate-400"
+                              />
+
+                              {/* Image Preview Area */}
+                              {diagnosisImage && (
+                                  <div className="px-4 pb-4">
+                                      <div className="relative inline-block">
+                                          <img 
+                                            src={diagnosisImage} 
+                                            alt="Symptom preview" 
+                                            className="h-20 w-20 object-cover rounded-lg border border-indigo-100 shadow-sm"
+                                          />
+                                          <button 
+                                            onClick={clearDiagnosisImage}
+                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
+                                          >
+                                              <X size={12} />
+                                          </button>
+                                      </div>
+                                  </div>
+                              )}
+                              
+                              {/* Action Bar inside text area */}
+                              <div className="flex justify-between items-center px-2 pb-2 bg-slate-50/50 border-t border-slate-100 pt-2">
+                                  <button
+                                    onClick={() => diagnosisFileInputRef.current?.click()}
+                                    className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                                  >
+                                      <ImagePlus size={20} />
+                                      <span>添加图片</span>
+                                  </button>
+                                  <span className="text-xs text-slate-400 px-2">
+                                      {diagnosisImage ? '已附加图片' : '可拍摄患处'}
+                                  </span>
+                              </div>
+                          </div>
                         </div>
 
                         <button 
                           onClick={handleSymptomAnalysis}
-                          disabled={!symptomsQuery.trim()}
+                          disabled={!symptomsQuery.trim() && !diagnosisImage}
                           className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none disabled:hover:scale-100 flex items-center justify-center gap-2"
                         >
                           <span>开始 AI 诊断</span>

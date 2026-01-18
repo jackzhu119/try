@@ -29,21 +29,33 @@ const DRUG_SYSTEM_PROMPT = `
 // --- Diagnosis Prompts ---
 
 const DIAGNOSIS_SYSTEM_PROMPT = `
-你是一位经验丰富的全科医生 (General Practitioner)。用户会描述他们的身体症状。
-请根据症状进行初步诊断，并提供治疗建议。
+你是一位经验丰富的全科医生 (General Practitioner)。用户会描述他们的身体症状，可能会提供患处图片。
+请根据症状进行**鉴别诊断**，分析**2-3种**最可能的病因，并分别提供治疗方案。
 
 **重要免责声明：你的回答必须基于医学常识，但必须在 JSON 之外隐式包含“仅供参考，不作为最终医疗诊断”的原则。**
 
 请务必返回合法的 JSON 格式，不要包含 Markdown 格式标记，Schema 如下：
 {
-  "conditions": ["可能的疾病1", "可能的疾病2"],
-  "explanation": "对病情可能原因的通俗解释，为什么会得这个病。",
-  "medications": ["推荐药物1 (OTC)", "推荐药物2"],
-  "treatments": ["非药物治疗手段1", "物理治疗建议"],
-  "lifestyle_advice": "关于饮食、休息、运动的具体建议。",
   "urgency": "Low" | "Medium" | "High",
   "urgency_reason": "判断紧急程度的理由（例如：是否需要立即就医）。",
-  "summary": "一段约150字的总结，语气专业但关怀，适合语音播报，告知用户大概情况和下一步该做什么。"
+  "summary": "一段约100字的总体摘要，语气专业但关怀，适合语音播报，概括最可能的猜测和建议。",
+  "potential_conditions": [
+    {
+      "name": "疾病名称 A (例如: 紧张性头痛)",
+      "probability": "高/中/低",
+      "explanation": "为什么认为是这个病？结合用户症状（及图片特征）进行解释。",
+      "medications": ["推荐药物1 (OTC)", "推荐药物2"],
+      "treatments": ["物理治疗手段1", "休息建议"]
+    },
+    {
+      "name": "疾病名称 B (例如: 偏头痛)",
+      "probability": "中/低",
+      "explanation": "另一种可能性，与 A 的区别。",
+      "medications": ["针对 B 的药物"],
+      "treatments": ["针对 B 的治疗"]
+    }
+  ],
+  "lifestyle_advice": "关于饮食、休息、运动的通用康复建议，适用于上述所有情况。"
 }
 
 判断标准：
@@ -102,7 +114,8 @@ export const getDrugInfoFromText = async (query: string): Promise<DrugInfo> => {
     { role: "system", content: DRUG_SYSTEM_PROMPT },
     { role: "user", content: `请详细查询药品：${query}，并提供全面的用药指导。` }
   ];
-  const result = await callQwenApi(messages, "qwen-plus");
+  // Speed Optimization: Use qwen-turbo for text queries
+  const result = await callQwenApi(messages, "qwen-turbo");
   if (result.name === "未识别" || result.name.includes("未识别")) {
       throw new Error("无法识别该药品，请确保名称正确。");
   }
@@ -132,11 +145,34 @@ export const getDrugInfoFromImage = async (base64Image: string): Promise<DrugInf
   return result as DrugInfo;
 };
 
-export const analyzeSymptoms = async (symptoms: string): Promise<DiagnosisInfo> => {
-  const messages = [
-    { role: "system", content: DIAGNOSIS_SYSTEM_PROMPT },
-    { role: "user", content: `我的症状如下：${symptoms}。请进行诊断并提供建议。` }
-  ];
-  const result = await callQwenApi(messages, "qwen-plus");
+export const analyzeSymptoms = async (symptoms: string, base64Image?: string): Promise<DiagnosisInfo> => {
+  let messages;
+  let model = "qwen-plus"; // Default high intelligence model
+
+  if (base64Image) {
+    model = "qwen-vl-max"; // Switch to Vision model if image provided
+    messages = [
+      { role: "system", content: DIAGNOSIS_SYSTEM_PROMPT },
+      { 
+        role: "user", 
+        content: [
+          { type: "text", text: `我的症状描述如下：${symptoms || "（用户未提供文字，请仅根据图片判断）"}。请结合图片中的视觉特征（如伤口、皮疹、红肿等）和文字描述进行鉴别诊断。` },
+          { 
+            type: "image_url", 
+            image_url: { 
+              url: base64Image 
+            } 
+          }
+        ] 
+      }
+    ];
+  } else {
+    messages = [
+      { role: "system", content: DIAGNOSIS_SYSTEM_PROMPT },
+      { role: "user", content: `我的症状如下：${symptoms}。请进行鉴别诊断。` }
+    ];
+  }
+
+  const result = await callQwenApi(messages, model);
   return result as DiagnosisInfo;
 };
