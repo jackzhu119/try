@@ -157,7 +157,7 @@ function App() {
             <div className="mt-8 text-center space-y-2">
                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 border border-white/50 backdrop-blur-sm shadow-sm">
                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                 <span className="text-xs font-semibold text-slate-600">Qwen-VL Max 模型已连接</span>
+                 <span className="text-xs font-semibold text-slate-600">Gemini 3 Flash 模型已连接</span>
                </div>
                <p className="text-[10px] text-slate-400">
                  AI 生成内容仅供参考，用药请务必遵医嘱

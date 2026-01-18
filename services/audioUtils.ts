@@ -39,7 +39,9 @@ async function decodeAudioData(
  */
 export async function playAudio(base64Audio: string): Promise<() => void> {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
+    // Cross-browser support for AudioContext
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const audioContext = new AudioContextClass({
       sampleRate: 24000, // Gemini TTS usually defaults to 24kHz
     });
 
