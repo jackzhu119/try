@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/qwen-chat",
+      "destination": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

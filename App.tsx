@@ -17,7 +17,7 @@ function App() {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
-    setLoading({ isLoading: true, message: '正在查询药品数据库...' });
+    setLoading({ isLoading: true, message: 'AI 药师正在查询...' });
     try {
       const info = await getDrugInfoFromText(searchQuery);
       setDrugInfo(info);
@@ -33,21 +33,21 @@ function App() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setLoading({ isLoading: true, message: '正在识别药品包装...' });
+    setLoading({ isLoading: true, message: 'AI 正在识别图片...' });
     
-    // Convert to base64
     const reader = new FileReader();
     reader.onloadend = async () => {
       try {
         const base64String = reader.result as string;
+        // Call Real Qwen VL API
         const info = await getDrugInfoFromImage(base64String);
         setDrugInfo(info);
         setMode(AppMode.RESULT);
       } catch (error: any) {
-        alert(error.message || "Image recognition failed");
+        console.error(error);
+        alert("识别失败: " + (error.message || "请确保图片清晰"));
       } finally {
         setLoading({ isLoading: false, message: '' });
-        // Reset file input
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
     };
@@ -87,6 +87,12 @@ function App() {
                </div>
               <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">智能药师</h1>
               <p className="text-slate-500 mt-2">扫一扫，听懂您的药品说明书</p>
+              <div className="mt-3 flex items-center justify-center gap-2">
+                 <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full border border-green-200 flex items-center">
+                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1 animate-pulse"></span>
+                   Qwen-VL 视觉模型在线
+                 </span>
+              </div>
             </div>
 
             <div className="space-y-6 flex-1">
@@ -100,7 +106,7 @@ function App() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <span className="text-xl font-bold">扫描药品 / 包装</span>
+                  <span className="text-xl font-bold">扫描 / 拍照识别</span>
                 </div>
                 <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
               </button>
@@ -117,7 +123,7 @@ function App() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="输入药品名称 (如: 阿莫西林)"
+                  placeholder="试试搜索: 阿奇霉素"
                   className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-lg rounded-xl pl-5 pr-12 py-4 focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-transparent transition-shadow shadow-inner"
                 />
                 <button 
@@ -132,7 +138,7 @@ function App() {
             </div>
             
             <p className="text-center text-xs text-slate-400 mt-8">
-              AI生成内容仅供参考，用药请务必遵医嘱
+              AI生成内容仅供参考，用药请遵医嘱
             </p>
           </div>
         </div>

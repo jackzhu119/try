@@ -17,7 +17,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ message }) => {
         </div>
       </div>
       <p className="text-lg font-medium text-slate-700 animate-pulse">{message}</p>
-      <p className="text-sm text-slate-500 mt-2">AI 药师正在分析...</p>
+      <p className="text-sm text-slate-500 mt-2">Connecting to Qwen AI...</p>
     </div>
   );
 };

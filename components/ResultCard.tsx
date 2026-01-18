@@ -61,7 +61,10 @@ export const ResultCard: React.FC<ResultCardProps> = ({ info, onBack }) => {
       {/* Content */}
       <div className="pt-12 px-6 pb-6 flex-1 overflow-y-auto no-scrollbar">
         <h1 className="text-2xl font-bold text-slate-800 mb-1">{info.name}</h1>
-        <p className="text-sm text-slate-500 mb-6">智能识别结果 (演示模式)</p>
+        <div className="flex items-center gap-1 mb-6">
+           <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+           <p className="text-sm text-slate-500">AI 智能解析完成</p>
+        </div>
 
         {/* Audio Player Button */}
         <button
