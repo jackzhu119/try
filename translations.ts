@@ -11,20 +11,20 @@ export const t = {
     tab_diagnosis: "问症状",
     scan_btn: "拍照识别",
     scan_desc: "AI 视觉分析包装或胶囊",
-    or_manual: "或手动查询",
-    search_placeholder: "输入药品名称 (如: 阿莫西林)...",
+    or_manual: "手动输入药品名称",
+    search_placeholder: "例如：阿莫西林胶囊...",
     search_btn: "查询",
     
     // Diagnosis UI
-    symptom_title: "智能问诊",
-    input_text_label: "1. 描述症状 (文字/语音)",
-    input_image_label: "2. 上传患处图片 (可选)",
-    symptom_placeholder: "请详细描述您的不适（如：发烧39度，持续两天，伴有咳嗽...）",
-    voice_idle: "点击开始说话",
+    symptom_title: "智能问诊引擎",
+    input_text_label: "描述您的症状",
+    input_image_label: "上传患处照片",
+    symptom_placeholder: "请描述您的不适感受，AI 医生将为您分析...",
+    voice_idle: "点击说话",
     voice_listening: "正在聆听...",
-    add_image: "上传照片",
-    image_attached: "已上传",
-    remove_image: "删除",
+    add_image: "添加照片",
+    image_attached: "影像资料已上传",
+    remove_image: "移除",
     camera_hint: "可拍摄患处辅助诊断",
     
     start_diagnosis: "开始 AI 诊断",
@@ -40,7 +40,7 @@ export const t = {
     
     // Voice & Accessibility
     voice_error: "该浏览器不支持语音识别，请尝试使用 Chrome。",
-    voice_start: "开始语音输入",
+    voice_start: "语音输入",
     font_size: "字体大小",
     
     // Result Cards
@@ -90,20 +90,20 @@ export const t = {
     tab_drug: "Drug Search",
     tab_diagnosis: "Diagnosis",
     scan_btn: "Scan Medicine",
-    scan_desc: "AI Visual Analysis of Packaging or Pills",
-    or_manual: "Or Search Manually",
-    search_placeholder: "Enter drug name (e.g., Amoxicillin)...",
+    scan_desc: "AI Visual Analysis",
+    or_manual: "Manual Entry",
+    search_placeholder: "e.g., Amoxicillin...",
     search_btn: "Search",
     
     // Diagnosis UI
-    symptom_title: "AI Diagnosis",
-    input_text_label: "1. Describe Symptoms (Text/Voice)",
-    input_image_label: "2. Upload Image (Optional)",
-    symptom_placeholder: "Please describe your discomfort (e.g., fever of 39°C, lasting two days, accompanied by cough...)",
-    voice_idle: "Tap to Speak",
+    symptom_title: "AI Diagnosis Engine",
+    input_text_label: "Describe Symptoms",
+    input_image_label: "Upload Image",
+    symptom_placeholder: "Describe how you feel, Dr. AI is listening...",
+    voice_idle: "Speak",
     voice_listening: "Listening...",
-    add_image: "Upload Photo",
-    image_attached: "Attached",
+    add_image: "Add Photo",
+    image_attached: "Image Data Attached",
     remove_image: "Remove",
     camera_hint: "Photo of affected area",
 
@@ -120,7 +120,7 @@ export const t = {
 
     // Voice & Accessibility
     voice_error: "Voice input not supported in this browser. Try Chrome.",
-    voice_start: "Start Voice Input",
+    voice_start: "Voice Input",
     font_size: "Font Size",
 
     // Result Cards
