@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Brain, Database, ScanLine, CheckCircle2, Stethoscope, HeartPulse, FileText, Search } from 'lucide-react';
+import { Activity, Brain, Database, ScanLine, CheckCircle2, Stethoscope, HeartPulse, FileText, Search, Zap, Dna, Microscope, Sparkles } from 'lucide-react';
 import { Language } from '../types';
+import { t } from '../translations';
 
 interface LoadingOverlayProps {
   message?: string;
@@ -9,19 +11,21 @@ interface LoadingOverlayProps {
   lang: Language;
 }
 
-export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ type, lang }) => {
+export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ message, type, lang }) => {
   const [phase, setPhase] = useState(0);
+  const [tipIndex, setTipIndex] = useState(0);
+  const T = t[lang];
 
   // Configuration for Drug Search Mode
   const drugPhases = lang === 'zh' ? [
     { text: "启动视觉神经...", icon: ScanLine },
-    { text: "解析药品特征...", icon: Search },
+    { text: "解析药品特征...", icon: Microscope },
     { text: "检索全球药典...", icon: Database },
     { text: "生成用药指引...", icon: FileText },
     { text: "即将完成...", icon: CheckCircle2 },
   ] : [
     { text: "Initializing Vision...", icon: ScanLine },
-    { text: "Analyzing Features...", icon: Search },
+    { text: "Analyzing Features...", icon: Microscope },
     { text: "Searching Database...", icon: Database },
     { text: "Generating Guide...", icon: FileText },
     { text: "Finalizing...", icon: CheckCircle2 },
@@ -31,13 +35,13 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ type, lang }) =>
   const diagnosisPhases = lang === 'zh' ? [
     { text: "连接 AI 医疗大脑...", icon: Brain },
     { text: "分析症状描述...", icon: Stethoscope },
-    { text: "匹配病理模型...", icon: Activity },
+    { text: "匹配病理模型...", icon: Dna },
     { text: "生成诊断建议...", icon: HeartPulse },
     { text: "整理康复方案...", icon: CheckCircle2 },
   ] : [
     { text: "Connecting AI Brain...", icon: Brain },
     { text: "Analyzing Symptoms...", icon: Stethoscope },
-    { text: "Matching Pathology...", icon: Activity },
+    { text: "Matching Pathology...", icon: Dna },
     { text: "Generating Advice...", icon: HeartPulse },
     { text: "Creating Plan...", icon: CheckCircle2 },
   ];
@@ -47,28 +51,37 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ type, lang }) =>
   // Theme colors based on mode
   const theme = type === 'DIAGNOSIS' 
     ? {
-        gradient: "from-indigo-600 to-rose-600",
-        shadow: "shadow-[0_0_50px_rgba(225,29,72,0.5)]",
-        ring1: "border-t-rose-500",
-        ring2: "border-b-indigo-500",
-        bar: "from-indigo-500 to-rose-500",
-        particle: "bg-rose-400 shadow-[0_0_10px_#fb7185]"
+        accent: "text-rose-400",
+        bgGradient: "from-indigo-900/40 via-purple-900/40 to-slate-900/80",
+        ringColor: "border-rose-500/30",
+        ringGlow: "shadow-[0_0_30px_rgba(244,63,94,0.3)]",
+        progressBar: "bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500",
+        particle: "bg-rose-400"
       }
     : {
-        gradient: "from-blue-600 to-cyan-600",
-        shadow: "shadow-[0_0_50px_rgba(59,130,246,0.5)]",
-        ring1: "border-t-blue-500",
-        ring2: "border-b-cyan-500",
-        bar: "from-blue-500 to-cyan-500",
-        particle: "bg-blue-400 shadow-[0_0_10px_#60a5fa]"
+        accent: "text-cyan-400",
+        bgGradient: "from-slate-900/40 via-blue-900/40 to-cyan-900/80",
+        ringColor: "border-cyan-500/30",
+        ringGlow: "shadow-[0_0_30px_rgba(34,211,238,0.3)]",
+        progressBar: "bg-gradient-to-r from-blue-500 via-cyan-500 to-teal-500",
+        particle: "bg-cyan-400"
       };
 
+  // Phase Timer
   useEffect(() => {
     const interval = setInterval(() => {
       setPhase((p) => (p < currentPhases.length - 1 ? p + 1 : p));
-    }, 1500); 
+    }, 1200); 
     return () => clearInterval(interval);
   }, [currentPhases.length]);
+
+  // Tips Timer
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTipIndex((prev) => (prev + 1) % T.loading_tips.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [T.loading_tips.length]);
 
   const ActiveIcon = currentPhases[phase].icon;
 
@@ -77,85 +90,145 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ type, lang }) =>
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-xl text-white"
+      transition={{ duration: 0.3 }}
+      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-md text-white overflow-hidden font-sans select-none`}
     >
-      {/* Background Animated Gradients */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0],
-            opacity: [0.3, 0.5, 0.3] 
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-          className={`absolute top-0 left-0 w-full h-full bg-gradient-radial ${type === 'DIAGNOSIS' ? 'from-indigo-900/30' : 'from-blue-900/30'} via-transparent to-transparent`}
-        />
-      </div>
-
-      {/* Main Visual */}
-      <div className="relative w-64 h-64 flex items-center justify-center mb-12">
-        {/* Outer Ring */}
-        <motion.div 
-          animate={{ rotate: 360 }}
-          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-          className={`absolute inset-0 rounded-full border border-slate-700/50 ${theme.ring1} border-l-transparent`}
-        />
-        <motion.div 
-          animate={{ rotate: -360 }}
-          transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-          className={`absolute inset-4 rounded-full border border-slate-700/50 ${theme.ring2} border-r-transparent`}
-        />
+      {/* --- Ambient Background --- */}
+      <div className="absolute inset-0 z-0">
+        {/* Animated Gradient */}
+        <div className={`absolute inset-0 bg-gradient-radial ${theme.bgGradient} opacity-60`}></div>
         
-        {/* Pulsing Core */}
-        <motion.div 
-          animate={{ scale: [0.9, 1.05, 0.9], opacity: [0.8, 1, 0.8] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className={`relative z-10 w-32 h-32 rounded-full bg-gradient-to-tr ${theme.gradient} flex items-center justify-center ${theme.shadow}`}
-        >
-          <AnimatePresence mode="wait">
-             <motion.div
-               key={`${type}-${phase}`}
-               initial={{ scale: 0, opacity: 0, rotate: -20 }}
-               animate={{ scale: 1, opacity: 1, rotate: 0 }}
-               exit={{ scale: 0, opacity: 0, rotate: 20 }}
-               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-             >
-               <ActiveIcon size={48} className="text-white drop-shadow-md" />
-             </motion.div>
-          </AnimatePresence>
-        </motion.div>
-
-        {/* Orbiting Particles */}
-        <div className="absolute inset-0 animate-spin-slow">
-           <div className={`absolute top-0 left-1/2 w-3 h-3 rounded-full ${theme.particle}`}></div>
+        {/* Moving Grid */}
+        <div className="absolute inset-0 opacity-[0.05]" 
+             style={{ 
+               backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`,
+               backgroundSize: '40px 40px',
+               maskImage: 'radial-gradient(circle at center, black 40%, transparent 100%)'
+             }}>
         </div>
-      </div>
 
-      {/* Text Area */}
-      <div className="relative z-10 text-center space-y-4 px-6 max-w-sm">
-        <motion.h2 
-          key={`${type}-${phase}-text`}
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className={`text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400`}
-        >
-          {currentPhases[phase].text}
-        </motion.h2>
-        
-        <p className="text-slate-400 text-sm font-mono flex justify-center items-center gap-2 uppercase tracking-widest">
-          <span className={`w-2 h-2 rounded-full animate-pulse ${type === 'DIAGNOSIS' ? 'bg-rose-500' : 'bg-green-500'}`}></span>
-          AI Model Processing
-        </p>
-
-        {/* Progress Bar */}
-        <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-8">
-          <motion.div 
-            className={`h-full bg-gradient-to-r ${theme.bar}`}
-            initial={{ width: "0%" }}
-            animate={{ width: `${((phase + 1) / currentPhases.length) * 100}%` }}
-            transition={{ duration: 0.5 }}
+        {/* Floating Particles */}
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={i}
+            className={`absolute w-1 h-1 rounded-full ${theme.particle} opacity-40`}
+            initial={{ 
+              x: Math.random() * window.innerWidth, 
+              y: Math.random() * window.innerHeight 
+            }}
+            animate={{ 
+              y: [null, Math.random() * window.innerHeight],
+              opacity: [0.2, 0.5, 0.2]
+            }}
+            transition={{ 
+              duration: 10 + Math.random() * 10, 
+              repeat: Infinity, 
+              ease: "linear" 
+            }}
           />
+        ))}
+      </div>
+
+      {/* --- Main Content --- */}
+      <div className="relative z-10 flex flex-col items-center w-full max-w-md px-6">
+        
+        {/* Central Visualization */}
+        <div className="relative w-48 h-48 mb-12 flex items-center justify-center">
+           {/* Outer Rotating Ring */}
+           <motion.div 
+             animate={{ rotate: 360 }}
+             transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+             className={`absolute inset-0 rounded-full border-[1px] ${theme.ringColor} border-t-transparent border-l-transparent`}
+           />
+           {/* Inner Counter-Rotating Ring */}
+           <motion.div 
+             animate={{ rotate: -360 }}
+             transition={{ duration: 7, repeat: Infinity, ease: "linear" }}
+             className={`absolute inset-4 rounded-full border-[2px] ${theme.ringColor} border-b-transparent border-r-transparent opacity-70`}
+           />
+           
+           {/* Pulsing Glow Background */}
+           <motion.div 
+             animate={{ scale: [0.8, 1.1, 0.8], opacity: [0.1, 0.2, 0.1] }}
+             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+             className={`absolute inset-0 rounded-full ${theme.bgGradient} blur-2xl`}
+           />
+
+           {/* Central Icon Container */}
+           <div className={`relative w-24 h-24 rounded-full bg-slate-900/80 backdrop-blur-xl border border-white/10 flex items-center justify-center ${theme.ringGlow}`}>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={phase}
+                  initial={{ opacity: 0, scale: 0.5, rotateY: 90 }}
+                  animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+                  exit={{ opacity: 0, scale: 0.5, rotateY: -90 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <ActiveIcon size={40} className={`text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]`} />
+                </motion.div>
+              </AnimatePresence>
+              
+              {/* Scanning Line Effect */}
+              <motion.div 
+                animate={{ top: ['0%', '100%', '0%'] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className={`absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white to-transparent opacity-50`}
+              />
+           </div>
         </div>
+
+        {/* Text Status */}
+        <div className="text-center space-y-6 w-full">
+           <div className="h-8 relative overflow-hidden">
+             <AnimatePresence mode="wait">
+               <motion.h2 
+                 key={message || currentPhases[phase].text}
+                 initial={{ y: 20, opacity: 0 }}
+                 animate={{ y: 0, opacity: 1 }}
+                 exit={{ y: -20, opacity: 0 }}
+                 className="text-2xl font-medium tracking-wide text-white absolute inset-0 flex items-center justify-center"
+               >
+                 {message || currentPhases[phase].text}
+               </motion.h2>
+             </AnimatePresence>
+           </div>
+
+           {/* Progress Bar */}
+           <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden relative">
+              {/* Shimmer Effect */}
+              <motion.div 
+                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-1/2 z-20"
+                 animate={{ x: ['-100%', '200%'] }}
+                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+              />
+              <motion.div 
+                className={`h-full ${theme.progressBar} shadow-[0_0_10px_currentColor]`}
+                initial={{ width: "5%" }}
+                animate={{ width: `${Math.min(((phase + 1) / currentPhases.length) * 100, 95)}%` }}
+                transition={{ duration: 0.5 }}
+              />
+           </div>
+
+           {/* Health Tips Carousel */}
+           <div className="mt-8 pt-6 border-t border-white/5 relative min-h-[60px]">
+              <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-2 font-bold">
+                {lang === 'zh' ? 'AI 知识库' : 'DID YOU KNOW'}
+              </p>
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={tipIndex}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="text-sm text-slate-300 font-light leading-relaxed px-4"
+                >
+                  {T.loading_tips[tipIndex]}
+                </motion.p>
+              </AnimatePresence>
+           </div>
+        </div>
+
       </div>
     </motion.div>
   );

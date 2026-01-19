@@ -210,19 +210,27 @@ function App() {
     }
   };
 
-  // New handler for clicking a medication/treatment in the diagnosis result
+  // Improved handler to prevent UI freeze
   const handleDiagnosisItemClick = async (itemQuery: string) => {
-    setLoading({ isLoading: true, message: lang === 'zh' ? `正在查询 "${itemQuery}" 详情...` : `Searching details for "${itemQuery}"...` });
-    try {
-       // Reuse the drug info fetch logic for medications and treatments
-       const info = await getDrugInfoFromText(itemQuery, lang);
-       setDrugInfo(info);
-       setMode(AppMode.RESULT); // Switch to Result mode
-    } catch (error: any) {
-       showToast(lang === 'zh' ? "查询详情失败" : "Failed to fetch details", 'error');
-    } finally {
-       setLoading({ isLoading: false, message: '' });
-    }
+    // 1. Set loading state immediately to trigger UI update (Loading Overlay)
+    setLoading({ 
+        isLoading: true, 
+        message: lang === 'zh' ? `正在查询 "${itemQuery}" 详情...` : `Researching "${itemQuery}"...` 
+    });
+
+    // 2. Use setTimeout to push the heavy API call to the next tick
+    // Increased to 80ms to ensure the browser has time to paint the loading overlay frames
+    setTimeout(async () => {
+        try {
+           const info = await getDrugInfoFromText(itemQuery, lang);
+           setDrugInfo(info);
+           setMode(AppMode.RESULT); 
+        } catch (error: any) {
+           showToast(lang === 'zh' ? "查询详情失败" : "Failed to fetch details", 'error');
+        } finally {
+           setLoading({ isLoading: false, message: '' });
+        }
+    }, 80);
   };
 
   const clearDiagnosisImage = () => setDiagnosisImage(null);
@@ -230,11 +238,7 @@ function App() {
   const handleBack = useCallback(() => {
     // Smart Back Navigation
     if (mode === AppMode.RESULT && diagnosisInfo !== null) {
-      // If we are in Drug Result mode BUT we have diagnosis info, 
-      // it means we likely clicked a medication from the diagnosis screen.
-      // So we go back to Diagnosis Result instead of Home.
       setMode(AppMode.DIAGNOSIS_RESULT);
-      // Optional: Clear the specific drug info so next time we don't flash it
       setTimeout(() => setDrugInfo(null), 500);
     } else {
       setMode(AppMode.HOME);

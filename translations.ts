@@ -38,6 +38,17 @@ export const t = {
     missing_input: "请描述症状或上传图片",
     contact: "反馈建议",
     
+    // Loading Tips
+    loading_tips: [
+      "💡 正在比对千万级医疗数据...",
+      "💡 即使症状缓解，也要遵医嘱完成抗生素疗程。",
+      "💡 胶囊药物请勿拆开服用，以免影响药效。",
+      "💡 大多数药物应存放在阴凉干燥处。",
+      "💡 服药期间请避免饮酒，特别是头孢类药物。",
+      "💡 AI 正在阅读最新的医学文献...",
+      "💡 规律作息是增强免疫力的最好方式。"
+    ],
+    
     // Voice & Accessibility
     voice_error: "该浏览器不支持语音识别，请尝试使用 Chrome。",
     voice_start: "语音输入",
@@ -117,6 +128,17 @@ export const t = {
     diagnosis_fail: "Diagnosis Failed",
     missing_input: "Please describe symptoms or upload an image",
     contact: "Feedback",
+
+    // Loading Tips
+    loading_tips: [
+      "💡 Analyzing millions of medical records...",
+      "💡 Finish the full course of antibiotics even if you feel better.",
+      "💡 Do not open capsules unless directed by a doctor.",
+      "💡 Store medications in a cool, dry place.",
+      "💡 Avoid alcohol while taking medication.",
+      "💡 AI is reviewing the latest medical literature...",
+      "💡 Regular sleep is key to a strong immune system."
+    ],
 
     // Voice & Accessibility
     voice_error: "Voice input not supported in this browser. Try Chrome.",
