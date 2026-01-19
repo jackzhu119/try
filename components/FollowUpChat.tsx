@@ -22,8 +22,7 @@ export const FollowUpChat: React.FC<FollowUpChatProps> = ({ contextText, lang, s
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Fix: Only scroll to bottom when the number of messages changes (i.e. new message added).
-  // Removed isLoading dependency to prevent jumping while waiting or typing.
+  // Only scroll to bottom when the number of messages changes (i.e. new message added).
   useEffect(() => {
     if (messages.length > 0) {
       scrollToBottom();

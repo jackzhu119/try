@@ -106,8 +106,14 @@ const getSystemPrompt = (lang: Language, type: 'DRUG' | 'DIAGNOSIS') => {
 };
 
 const extractJSON = (text: string) => {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    // Try to find JSON block if wrapped in markdown code blocks
+    const jsonMatch = text.match(/```json\s*(\{[\s\S]*\})\s*```/);
+    if (jsonMatch) return JSON.parse(jsonMatch[1]);
+    
+    // Try to find raw JSON object
+    const rawMatch = text.match(/\{[\s\S]*\}/);
+    if (rawMatch) return JSON.parse(rawMatch[0]);
+    
     return JSON.parse(text);
 };
 

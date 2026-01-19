@@ -3,10 +3,13 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
+  // Prioritize environment variable, fallback to the provided key
+  const apiKey = env.API_KEY || "sk-e5e7b33d1f684e66be3cd51e52ae0bab";
+
   return {
     plugins: [react()],
     define: {
-      'process.env.API_KEY': JSON.stringify(env.API_KEY)
+      'process.env.API_KEY': JSON.stringify(apiKey)
     },
     server: {
       proxy: {

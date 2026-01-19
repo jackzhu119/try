@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Camera, Sparkles, Stethoscope, Pill, ArrowRight, Activity, ScanLine, ImagePlus, X, Globe, Mail } from 'lucide-react';
 import { AppMode, DrugInfo, DiagnosisInfo, LoadingState, Language } from './types';
 import { t } from './translations';
+// Import from Qwen Service
 import { getDrugInfoFromImage, getDrugInfoFromText, analyzeSymptoms } from './services/qwenService';
 import { ResultCard } from './components/ResultCard';
 import { DiagnosisResultCard } from './components/DiagnosisResultCard';
