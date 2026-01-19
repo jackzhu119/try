@@ -1,7 +1,8 @@
-import React, { useState, useRef, useCallback } from 'react';
+
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Camera, Sparkles, Stethoscope, Pill, ArrowRight, Activity, ScanLine, ImagePlus, X, Globe, Mail } from 'lucide-react';
-import { AppMode, DrugInfo, DiagnosisInfo, LoadingState, Language } from './types';
+import { Search, Camera, Sparkles, Stethoscope, Pill, ArrowRight, Activity, ScanLine, ImagePlus, X, Globe, Mail, Mic, MicOff } from 'lucide-react';
+import { AppMode, DrugInfo, DiagnosisInfo, LoadingState, Language, SpeechRecognition } from './types';
 import { t } from './translations';
 // Import from Qwen Service
 import { getDrugInfoFromImage, getDrugInfoFromText, analyzeSymptoms } from './services/qwenService';
@@ -61,6 +62,10 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [symptomsQuery, setSymptomsQuery] = useState('');
   const [diagnosisImage, setDiagnosisImage] = useState<string | null>(null);
+
+  // Voice State
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   
   // Refs
   const drugFileInputRef = useRef<HTMLInputElement>(null);
@@ -81,6 +86,45 @@ function App() {
   const toggleLanguage = () => {
     setLang(prev => prev === 'zh' ? 'en' : 'zh');
     showToast(lang === 'zh' ? 'Switched to English' : '已切换至中文', 'success');
+  };
+
+  // Voice Recognition Logic
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        showToast(T.voice_error, 'error');
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setSymptomsQuery((prev) => prev + (prev ? ' ' : '') + transcript);
+        setIsListening(false);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        setIsListening(false);
+        showToast(T.voice_error, 'error');
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+      setIsListening(true);
+    }
   };
 
   const handleDrugSearch = async (e: React.FormEvent) => {
@@ -369,16 +413,25 @@ function App() {
                             </div>
                             
                             <div className="relative group">
-                              <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl blur opacity-30 group-focus-within:opacity-75 transition duration-500"></div>
+                              <div className={`absolute -inset-0.5 bg-gradient-to-r ${isListening ? 'from-red-500 via-orange-500 to-red-500 animate-pulse' : 'from-indigo-500 via-purple-500 to-pink-500'} rounded-2xl blur opacity-30 group-focus-within:opacity-75 transition duration-500`}></div>
                               
                               <div className="relative bg-white rounded-xl overflow-hidden shadow-sm">
                                   <textarea
                                     value={symptomsQuery}
                                     onChange={(e) => setSymptomsQuery(e.target.value)}
-                                    placeholder={T.symptom_placeholder}
+                                    placeholder={isListening ? T.listening : T.symptom_placeholder}
                                     rows={diagnosisImage ? 3 : 5}
-                                    className="w-full bg-transparent text-slate-800 text-lg p-4 focus:outline-none resize-none placeholder:text-slate-400"
+                                    className="w-full bg-transparent text-slate-800 text-lg p-4 pr-12 focus:outline-none resize-none placeholder:text-slate-400"
                                   />
+                                  
+                                  {/* Voice Input Button */}
+                                  <button
+                                    onClick={toggleListening}
+                                    className={`absolute top-2 right-2 p-2 rounded-full transition-all duration-300 ${isListening ? 'bg-red-50 text-red-600 scale-110 ring-2 ring-red-200' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
+                                    title={T.click_to_speak}
+                                  >
+                                    {isListening ? <MicOff size={20} className="animate-pulse" /> : <Mic size={20} />}
+                                  </button>
 
                                   {diagnosisImage && (
                                       <div className="px-4 pb-4">

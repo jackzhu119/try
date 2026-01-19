@@ -1,3 +1,4 @@
+
 export type Language = 'zh' | 'en';
 
 export interface DrugInfo {
@@ -43,4 +44,28 @@ export interface ChatMessage {
   role: 'user' | 'ai';
   content: string;
   timestamp: number;
+}
+
+// Web Speech API Types
+export interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: (event: any) => void;
+  onerror: (event: any) => void;
+  onend: () => void;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: {
+      new (): SpeechRecognition;
+    };
+    webkitSpeechRecognition: {
+      new (): SpeechRecognition;
+    };
+  }
 }

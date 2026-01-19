@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DiagnosisInfo, Language } from '../types';
 import { t } from '../translations';
 import { 
   ArrowLeft, Volume2, StopCircle, Stethoscope, 
-  Activity, Thermometer, ShieldAlert, Utensils, HeartPulse, Sparkles, AlertCircle, Dna, Copy, Check
+  Activity, Thermometer, ShieldAlert, Utensils, HeartPulse, Sparkles, AlertCircle, Dna, Copy, Check, Type
 } from 'lucide-react';
 import { FollowUpChat } from './FollowUpChat';
 
@@ -19,6 +20,8 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [copied, setCopied] = useState(false);
+  // Font scaling state: 0 (100%), 1 (115%), 2 (130%)
+  const [fontScale, setFontScale] = useState(0); 
   const T = t[lang];
 
   useEffect(() => {
@@ -55,6 +58,10 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const toggleFontScale = () => {
+    setFontScale(prev => (prev + 1) % 3);
   };
 
   // Theme based on urgency
@@ -115,6 +122,11 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
 
   const chatContext = JSON.stringify(info);
 
+  // Dynamic style for main content wrapper
+  const contentStyle = {
+    fontSize: fontScale === 0 ? '100%' : fontScale === 1 ? '115%' : '130%'
+  };
+
   return (
     <div className="w-full h-full flex flex-col relative overflow-hidden bg-slate-50">
       
@@ -130,36 +142,55 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
       <motion.div 
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between"
+        className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm"
       >
-        <button 
-          onClick={onBack}
-          className="p-2 rounded-full hover:bg-slate-100 text-slate-600 transition-colors"
-        >
-          <ArrowLeft size={24} />
-        </button>
-        <span className="font-semibold text-slate-800 flex items-center gap-2">
-           <Stethoscope size={18} className="text-blue-500"/>
-           {T.diagnosis_report}
-        </span>
-         {/* Copy Button */}
-         <button 
-          onClick={handleCopy}
-          className="p-2 rounded-full hover:bg-blue-50 text-blue-600 transition-all flex items-center gap-1 active:scale-95"
-          title={T.copy_report}
-        >
-           <AnimatePresence mode="wait">
-             {copied ? (
-               <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                  <Check size={20} />
-               </motion.div>
-             ) : (
-               <motion.div key="copy" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                  <Copy size={20} />
-               </motion.div>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={onBack}
+            className="p-2 rounded-full hover:bg-slate-100 text-slate-600 transition-colors"
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <span className="font-semibold text-slate-800 flex items-center gap-2">
+            <Stethoscope size={18} className="text-blue-500"/>
+            {T.diagnosis_report}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+           {/* Font Size Toggle */}
+           <button 
+            onClick={toggleFontScale}
+            className="p-2 rounded-full hover:bg-slate-100 text-slate-600 transition-all flex items-center justify-center relative"
+            title={T.font_size}
+          >
+             <Type size={20} />
+             {fontScale > 0 && (
+               <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                 {fontScale === 1 ? '+' : '++'}
+               </span>
              )}
-           </AnimatePresence>
-        </button>
+          </button>
+
+           {/* Copy Button */}
+           <button 
+            onClick={handleCopy}
+            className="p-2 rounded-full hover:bg-blue-50 text-blue-600 transition-all flex items-center gap-1 active:scale-95"
+            title={T.copy_report}
+          >
+             <AnimatePresence mode="wait">
+               {copied ? (
+                 <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                    <Check size={20} />
+                 </motion.div>
+               ) : (
+                 <motion.div key="copy" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                    <Copy size={20} />
+                 </motion.div>
+               )}
+             </AnimatePresence>
+          </button>
+        </div>
       </motion.div>
 
       {/* Content */}
@@ -169,6 +200,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
         initial="hidden"
         animate="visible"
       >
+        <div style={contentStyle} className="transition-all duration-300">
          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
            
            {/* Left Column (Diagnosis) */}
@@ -182,23 +214,23 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
                 
                 <div className="relative z-10">
                   <div className="flex justify-between items-start mb-4">
-                    <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-white/10 flex items-center gap-1">
+                    <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-[0.75em] font-bold uppercase tracking-wider border border-white/10 flex items-center gap-1">
                       {info.urgency === 'High' ? T.urgency_high : info.urgency === 'Medium' ? T.urgency_med : T.urgency_low}
                     </span>
                     <button 
                       onClick={handlePlayAudio}
-                      className="flex items-center gap-2 bg-white/90 hover:bg-white text-slate-800 px-3 py-1.5 rounded-full font-bold text-xs shadow-lg transition-all active:scale-95"
+                      className="flex items-center gap-2 bg-white/90 hover:bg-white text-slate-800 px-3 py-1.5 rounded-full font-bold text-[0.8em] shadow-lg transition-all active:scale-95"
                     >
                       {isPlaying ? <StopCircle size={14} /> : <Volume2 size={14} />}
                       <span>{T.play}</span>
                     </button>
                   </div>
                   
-                  <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
+                  <h1 className="text-[1.75em] font-bold mb-2 flex items-center gap-2">
                     <Sparkles size={24} className="opacity-80"/>
                     {T.preliminary_analysis}
                   </h1>
-                  <p className="text-white/90 leading-relaxed text-sm">
+                  <p className="text-white/90 leading-relaxed text-[0.95em]">
                     {info.summary}
                   </p>
                 </div>
@@ -207,8 +239,8 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
               {/* --- Interactive Condition Tabs --- */}
               <motion.div variants={itemVariants}>
                 <div className="flex items-center gap-2 mb-3 px-1">
-                  <ShieldAlert size={18} className="text-slate-500"/>
-                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{T.possible_causes}</h3>
+                  <ShieldAlert size={'1.2em'} className="text-slate-500"/>
+                  <h3 className="text-[1em] font-bold text-slate-500 uppercase tracking-wider">{T.possible_causes}</h3>
                 </div>
                 
                 {/* Tabs */}
@@ -227,10 +259,10 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
                         />
                       )}
                       <div className="relative z-10 flex flex-col items-start gap-1">
-                        <span className={`font-bold text-sm ${selectedIndex === index ? 'text-slate-800' : 'text-slate-400'}`}>
+                        <span className={`font-bold text-[0.9em] ${selectedIndex === index ? 'text-slate-800' : 'text-slate-400'}`}>
                           {condition.name}
                         </span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${
+                        <span className={`text-[0.75em] px-1.5 py-0.5 rounded-md font-medium ${
                           selectedIndex === index 
                             ? 'bg-blue-100 text-blue-700' 
                             : 'bg-slate-200 text-slate-500'
@@ -256,11 +288,11 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
                       >
                         {/* Explanation */}
                         <div>
-                          <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-2">
-                            <AlertCircle size={18} className="text-blue-500"/>
+                          <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-2 text-[1.1em]">
+                            <AlertCircle size={'1em'} className="text-blue-500"/>
                             {T.pathology}
                           </h4>
-                          <p className="text-slate-600 text-sm leading-6 bg-slate-50 p-3 rounded-xl">
+                          <p className="text-slate-600 text-[0.95em] leading-relaxed bg-slate-50 p-3 rounded-xl">
                             {selectedCondition.explanation}
                           </p>
                         </div>
@@ -270,41 +302,41 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {/* Medications */}
                           <div>
-                            <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-3">
-                              <Thermometer size={18} className="text-purple-500"/>
+                            <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-3 text-[1.1em]">
+                              <Thermometer size={'1em'} className="text-purple-500"/>
                               {T.rec_meds}
                             </h4>
                             {selectedCondition.medications.length > 0 ? (
                               <ul className="space-y-2">
                                 {selectedCondition.medications.map((med, idx) => (
-                                  <li key={idx} className="flex items-start gap-2 text-sm text-slate-700 bg-purple-50/50 p-2 rounded-lg border border-purple-100/50">
+                                  <li key={idx} className="flex items-start gap-2 text-[0.9em] text-slate-700 bg-purple-50/50 p-2 rounded-lg border border-purple-100/50">
                                     <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-purple-400 shrink-0" />
                                     {med}
                                   </li>
                                 ))}
                               </ul>
                             ) : (
-                              <p className="text-sm text-slate-400 italic">{T.no_meds}</p>
+                              <p className="text-[0.9em] text-slate-400 italic">{T.no_meds}</p>
                             )}
                           </div>
 
                           {/* Treatments */}
                           <div>
-                            <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-3">
-                              <HeartPulse size={18} className="text-emerald-500"/>
+                            <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-3 text-[1.1em]">
+                              <HeartPulse size={'1em'} className="text-emerald-500"/>
                               {T.adj_treatment}
                             </h4>
                             {selectedCondition.treatments.length > 0 ? (
                               <ul className="space-y-2">
                                 {selectedCondition.treatments.map((t, idx) => (
-                                  <li key={idx} className="flex items-start gap-2 text-sm text-slate-700 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100/50">
+                                  <li key={idx} className="flex items-start gap-2 text-[0.9em] text-slate-700 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100/50">
                                     <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
                                     {t}
                                   </li>
                                 ))}
                               </ul>
                             ) : (
-                              <p className="text-sm text-slate-400 italic">{T.no_treatments}</p>
+                              <p className="text-[0.9em] text-slate-400 italic">{T.no_treatments}</p>
                             )}
                           </div>
                         </div>
@@ -316,17 +348,17 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
 
               {/* Generic Lifestyle Advice */}
               <motion.div variants={itemVariants} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100">
-                <div className="flex items-center gap-2 text-indigo-700 font-bold mb-2">
-                  <Utensils size={20} />
+                <div className="flex items-center gap-2 text-indigo-700 font-bold mb-2 text-[1.1em]">
+                  <Utensils size={'1.2em'} />
                   <h3>{T.lifestyle}</h3>
                 </div>
-                <p className="text-slate-700 text-sm leading-6">
+                <p className="text-slate-700 text-[0.95em] leading-relaxed">
                   {info.lifestyle_advice}
                 </p>
               </motion.div>
 
               {/* Disclaimer Footer */}
-              <motion.div variants={itemVariants} className="flex gap-3 bg-slate-100 rounded-xl p-4 text-xs text-slate-500 items-start">
+              <motion.div variants={itemVariants} className="flex gap-3 bg-slate-100 rounded-xl p-4 text-[0.8em] text-slate-500 items-start">
                 <ShieldAlert size={16} className="shrink-0 mt-0.5" />
                 <p>
                   <strong>{T.disclaimer_title}</strong> {T.disclaimer_text}
@@ -345,6 +377,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
               </div>
            </motion.div>
 
+         </div>
          </div>
       </motion.div>
     </div>

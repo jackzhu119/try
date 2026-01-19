@@ -1,3 +1,4 @@
+
 import { Language } from './types';
 
 export const t = {
@@ -14,7 +15,7 @@ export const t = {
     search_placeholder: "输入药品名称 (如: 阿莫西林)...",
     search_btn: "查询",
     symptom_title: "描述症状 / 上传图片",
-    symptom_placeholder: "请描述您的不适（如发烧、皮疹等）...",
+    symptom_placeholder: "请描述您的不适（如发烧、皮疹等），点击麦克风可语音输入...",
     add_image: "添加图片",
     image_attached: "已附加图片",
     camera_hint: "可拍摄患处",
@@ -28,6 +29,12 @@ export const t = {
     diagnosis_fail: "诊断失败",
     missing_input: "请描述症状或上传图片",
     contact: "反馈建议",
+    
+    // Voice & Accessibility
+    click_to_speak: "点击说话",
+    listening: "正在听...",
+    voice_error: "语音识别不可用",
+    font_size: "字体大小",
     
     // Result Cards
     ai_summary: "AI 智能摘要",
@@ -79,7 +86,7 @@ export const t = {
     search_placeholder: "Enter drug name (e.g., Amoxicillin)...",
     search_btn: "Search",
     symptom_title: "Describe Symptoms / Upload Image",
-    symptom_placeholder: "Describe your discomfort (e.g., fever, rash)...",
+    symptom_placeholder: "Describe your discomfort, or tap mic to speak...",
     add_image: "Add Image",
     image_attached: "Image Attached",
     camera_hint: "Photo of affected area",
@@ -93,6 +100,12 @@ export const t = {
     diagnosis_fail: "Diagnosis Failed",
     missing_input: "Please describe symptoms or upload an image",
     contact: "Feedback",
+
+    // Voice & Accessibility
+    click_to_speak: "Tap to Speak",
+    listening: "Listening...",
+    voice_error: "Voice input unavailable",
+    font_size: "Font Size",
 
     // Result Cards
     ai_summary: "AI Summary",
