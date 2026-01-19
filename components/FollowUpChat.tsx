@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Bot, User, Sparkles } from 'lucide-react';
 import { ChatMessage, Language } from '../types';
-import { askFollowUpQuestion } from '../services/qwenService';
+import { askFollowUpQuestion } from '../services/geminiService';
 import { t } from '../translations';
 
 interface FollowUpChatProps {

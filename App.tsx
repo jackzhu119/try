@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Camera, Sparkles, Stethoscope, Pill, ArrowRight, Activity, ScanLine, ImagePlus, X, Globe, Mail } from 'lucide-react';
 import { AppMode, DrugInfo, DiagnosisInfo, LoadingState, Language } from './types';
 import { t } from './translations';
-import { getDrugInfoFromImage, getDrugInfoFromText, analyzeSymptoms } from './services/qwenService';
+import { getDrugInfoFromImage, getDrugInfoFromText, analyzeSymptoms } from './services/geminiService';
 import { ResultCard } from './components/ResultCard';
 import { DiagnosisResultCard } from './components/DiagnosisResultCard';
 import { LoadingOverlay } from './components/LoadingOverlay';
@@ -261,7 +261,7 @@ function App() {
 
                 <div className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 backdrop-blur-sm border border-slate-200 text-sm font-medium text-slate-500 shadow-sm mt-8">
                    <div className={`w-2 h-2 rounded-full animate-pulse ${activeTab === 'DRUG' ? 'bg-blue-500' : 'bg-indigo-500'}`}></div>
-                   {T.powered_by} {activeTab === 'DRUG' ? 'VL Max' : 'Plus'}
+                   {T.powered_by} {activeTab === 'DRUG' ? 'Gemini 3 Flash' : 'Gemini 3 Pro'}
                  </div>
               </div>
 
