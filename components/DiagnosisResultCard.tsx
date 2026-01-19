@@ -5,7 +5,7 @@ import { DiagnosisInfo, Language } from '../types';
 import { t } from '../translations';
 import { 
   ArrowLeft, Volume2, StopCircle, Stethoscope, 
-  Activity, Thermometer, ShieldAlert, Utensils, HeartPulse, Sparkles, AlertCircle, Dna, Copy, Check, Type
+  Activity, Thermometer, ShieldAlert, Utensils, HeartPulse, Sparkles, AlertCircle, Dna, Copy, Check, Type, ArrowRight, MousePointerClick
 } from 'lucide-react';
 import { FollowUpChat } from './FollowUpChat';
 
@@ -13,10 +13,11 @@ interface DiagnosisResultCardProps {
   info: DiagnosisInfo;
   onBack: () => void;
   lang: Language;
+  onItemClick: (query: string) => void;
 }
 
 // Optimization: Use React.memo to prevent re-renders when parent state (like Toast) changes
-export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.memo(({ info, onBack, lang }) => {
+export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.memo(({ info, onBack, lang, onItemClick }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -142,14 +143,14 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
       <motion.div 
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm"
+        className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm"
       >
         <div className="flex items-center gap-3">
           <button 
             onClick={onBack}
-            className="p-2 rounded-full hover:bg-slate-100 text-slate-600 transition-colors"
+            className="p-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors shadow-sm active:scale-95 border border-slate-200"
           >
-            <ArrowLeft size={24} />
+            <ArrowLeft size={20} />
           </button>
           <span className="font-semibold text-slate-800 flex items-center gap-2">
             <Stethoscope size={18} className="text-blue-500"/>
@@ -292,7 +293,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
                             <AlertCircle size={'1em'} className="text-blue-500"/>
                             {T.pathology}
                           </h4>
-                          <p className="text-slate-600 text-[0.95em] leading-relaxed bg-slate-50 p-3 rounded-xl">
+                          <p className="text-slate-600 text-[0.95em] leading-relaxed bg-slate-50 p-4 rounded-xl">
                             {selectedCondition.explanation}
                           </p>
                         </div>
@@ -300,41 +301,61 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
                         <div className="w-full h-px bg-slate-100 my-4"></div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {/* Medications */}
+                          {/* Medications - Clickable */}
                           <div>
                             <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-3 text-[1.1em]">
                               <Thermometer size={'1em'} className="text-purple-500"/>
                               {T.rec_meds}
                             </h4>
                             {selectedCondition.medications.length > 0 ? (
-                              <ul className="space-y-2">
+                              <div className="space-y-2">
                                 {selectedCondition.medications.map((med, idx) => (
-                                  <li key={idx} className="flex items-start gap-2 text-[0.9em] text-slate-700 bg-purple-50/50 p-2 rounded-lg border border-purple-100/50">
-                                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-purple-400 shrink-0" />
-                                    {med}
-                                  </li>
+                                  <button 
+                                    key={idx} 
+                                    onClick={() => onItemClick(med)}
+                                    className="w-full text-left flex items-center justify-between gap-2 text-[0.9em] text-slate-700 bg-purple-50 hover:bg-purple-100 p-3 rounded-xl border border-purple-100/50 hover:border-purple-200 transition-all group"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-purple-400 shrink-0" />
+                                        <span className="font-medium group-hover:text-purple-700">{med}</span>
+                                    </div>
+                                    <ArrowRight size={14} className="text-purple-300 group-hover:text-purple-500 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+                                  </button>
                                 ))}
-                              </ul>
+                                <p className="text-[0.7em] text-slate-400 mt-2 flex items-center gap-1 justify-end">
+                                   <MousePointerClick size={10} /> Click to view details
+                                </p>
+                              </div>
                             ) : (
                               <p className="text-[0.9em] text-slate-400 italic">{T.no_meds}</p>
                             )}
                           </div>
 
-                          {/* Treatments */}
+                          {/* Treatments - Clickable */}
                           <div>
                             <h4 className="flex items-center gap-2 font-bold text-slate-800 mb-3 text-[1.1em]">
                               <HeartPulse size={'1em'} className="text-emerald-500"/>
                               {T.adj_treatment}
                             </h4>
                             {selectedCondition.treatments.length > 0 ? (
-                              <ul className="space-y-2">
+                              <div className="space-y-2">
                                 {selectedCondition.treatments.map((t, idx) => (
-                                  <li key={idx} className="flex items-start gap-2 text-[0.9em] text-slate-700 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100/50">
-                                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                                    {t}
-                                  </li>
+                                  <button 
+                                    key={idx} 
+                                    onClick={() => onItemClick(t)}
+                                    className="w-full text-left flex items-center justify-between gap-2 text-[0.9em] text-slate-700 bg-emerald-50 hover:bg-emerald-100 p-3 rounded-xl border border-emerald-100/50 hover:border-emerald-200 transition-all group"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                                        <span className="font-medium group-hover:text-emerald-700">{t}</span>
+                                    </div>
+                                    <ArrowRight size={14} className="text-emerald-300 group-hover:text-emerald-500 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+                                  </button>
                                 ))}
-                              </ul>
+                                <p className="text-[0.7em] text-slate-400 mt-2 flex items-center gap-1 justify-end">
+                                   <MousePointerClick size={10} /> Click to view details
+                                </p>
+                              </div>
                             ) : (
                               <p className="text-[0.9em] text-slate-400 italic">{T.no_treatments}</p>
                             )}

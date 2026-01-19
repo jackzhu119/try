@@ -104,16 +104,16 @@ export const ResultCard: React.FC<ResultCardProps> = React.memo(({ info, onBack,
       <motion.div 
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm"
+        className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm"
       >
         <div className="flex items-center gap-3 overflow-hidden">
           <button 
             onClick={onBack}
-            className="p-2 rounded-full hover:bg-slate-100 text-slate-600 transition-colors"
+            className="p-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors shadow-sm active:scale-95 border border-slate-200"
           >
-            <ArrowLeft size={24} />
+            <ArrowLeft size={20} />
           </button>
-          <span className="font-semibold text-slate-800 truncate max-w-[150px] sm:max-w-[300px]">{info.name}</span>
+          <span className="font-bold text-slate-800 truncate max-w-[150px] sm:max-w-[300px] text-lg">{info.name}</span>
         </div>
         
         <div className="flex items-center gap-2">

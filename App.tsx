@@ -210,15 +210,40 @@ function App() {
     }
   };
 
+  // New handler for clicking a medication/treatment in the diagnosis result
+  const handleDiagnosisItemClick = async (itemQuery: string) => {
+    setLoading({ isLoading: true, message: lang === 'zh' ? `正在查询 "${itemQuery}" 详情...` : `Searching details for "${itemQuery}"...` });
+    try {
+       // Reuse the drug info fetch logic for medications and treatments
+       const info = await getDrugInfoFromText(itemQuery, lang);
+       setDrugInfo(info);
+       setMode(AppMode.RESULT); // Switch to Result mode
+    } catch (error: any) {
+       showToast(lang === 'zh' ? "查询详情失败" : "Failed to fetch details", 'error');
+    } finally {
+       setLoading({ isLoading: false, message: '' });
+    }
+  };
+
   const clearDiagnosisImage = () => setDiagnosisImage(null);
 
   const handleBack = useCallback(() => {
-    setMode(AppMode.HOME);
-    setTimeout(() => {
-        setDrugInfo(null);
-        setDiagnosisInfo(null);
-    }, 500); 
-  }, []);
+    // Smart Back Navigation
+    if (mode === AppMode.RESULT && diagnosisInfo !== null) {
+      // If we are in Drug Result mode BUT we have diagnosis info, 
+      // it means we likely clicked a medication from the diagnosis screen.
+      // So we go back to Diagnosis Result instead of Home.
+      setMode(AppMode.DIAGNOSIS_RESULT);
+      // Optional: Clear the specific drug info so next time we don't flash it
+      setTimeout(() => setDrugInfo(null), 500);
+    } else {
+      setMode(AppMode.HOME);
+      setTimeout(() => {
+          setDrugInfo(null);
+          setDiagnosisInfo(null);
+      }, 500); 
+    }
+  }, [mode, diagnosisInfo]);
 
   // --- Render ---
 
@@ -235,22 +260,32 @@ function App() {
       <input type="file" ref={drugFileInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleDrugFileUpload} />
       <input type="file" ref={diagnosisFileInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleDiagnosisFileUpload} />
 
-      {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-40 p-4 md:p-6 flex justify-between items-center pointer-events-none">
-         <div className="pointer-events-auto flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg">
-               <Activity size={18} />
-            </div>
-            <span className="font-bold text-slate-700 tracking-tight hidden sm:block">SmartMed</span>
-         </div>
-        <button 
-          onClick={toggleLanguage}
-          className="pointer-events-auto bg-white/50 backdrop-blur-md border border-white/60 shadow-sm rounded-full px-4 py-2 flex items-center gap-2 hover:bg-white transition-all text-slate-600 font-medium text-xs md:text-sm group"
-        >
-          <Globe size={14} className="group-hover:rotate-180 transition-transform duration-500" />
-          <span>{lang === 'zh' ? 'EN' : '中文'}</span>
-        </button>
-      </div>
+      {/* Header - Only visible in HOME mode to prevent overlap with Result cards */}
+      <AnimatePresence>
+        {mode === AppMode.HOME && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="fixed top-0 left-0 right-0 z-40 p-4 md:p-6 flex justify-between items-center pointer-events-none"
+          >
+             <div className="pointer-events-auto flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg">
+                   <Activity size={18} />
+                </div>
+                <span className="font-bold text-slate-700 tracking-tight hidden sm:block">SmartMed</span>
+             </div>
+            <button 
+              onClick={toggleLanguage}
+              className="pointer-events-auto bg-white/50 backdrop-blur-md border border-white/60 shadow-sm rounded-full px-4 py-2 flex items-center gap-2 hover:bg-white transition-all text-slate-600 font-medium text-xs md:text-sm group"
+            >
+              <Globe size={14} className="group-hover:rotate-180 transition-transform duration-500" />
+              <span>{lang === 'zh' ? 'EN' : '中文'}</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="relative z-10 flex-1 flex flex-col">
         
@@ -265,7 +300,7 @@ function App() {
               animate={{ opacity: 1, y: 0 }} 
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
-              className="w-full h-screen fixed inset-0 z-20 bg-[#f8fafc]"
+              className="w-full h-screen fixed inset-0 z-50 bg-[#f8fafc]"
             >
               <ResultCard info={drugInfo} onBack={handleBack} lang={lang} />
             </motion.div>
@@ -276,9 +311,14 @@ function App() {
               animate={{ opacity: 1, y: 0 }} 
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
-              className="w-full h-screen fixed inset-0 z-20 bg-[#f8fafc]"
+              className="w-full h-screen fixed inset-0 z-50 bg-[#f8fafc]"
             >
-              <DiagnosisResultCard info={diagnosisInfo} onBack={handleBack} lang={lang} />
+              <DiagnosisResultCard 
+                info={diagnosisInfo} 
+                onBack={handleBack} 
+                lang={lang} 
+                onItemClick={handleDiagnosisItemClick}
+              />
             </motion.div>
           ) : (
             
