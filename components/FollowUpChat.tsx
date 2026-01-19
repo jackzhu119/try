@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Bot, User, Sparkles } from 'lucide-react';
 import { ChatMessage, Language } from '../types';
@@ -12,7 +12,7 @@ interface FollowUpChatProps {
   suggestions: string[];
 }
 
-export const FollowUpChat: React.FC<FollowUpChatProps> = ({ contextText, lang, suggestions }) => {
+export const FollowUpChat: React.FC<FollowUpChatProps> = memo(({ contextText, lang, suggestions }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -67,7 +67,7 @@ export const FollowUpChat: React.FC<FollowUpChatProps> = ({ contextText, lang, s
   };
 
   return (
-    <div className="flex flex-col h-full bg-white/50 backdrop-blur-sm rounded-3xl border border-white/60 shadow-lg overflow-hidden relative group">
+    <div className="flex flex-col h-full bg-white/50 backdrop-blur-sm rounded-3xl border border-white/60 shadow-lg overflow-hidden relative group transform-gpu">
        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full blur-3xl -z-10 opacity-50"></div>
 
        <div className="p-4 border-b border-indigo-50/50 bg-white/40 flex items-center gap-2">
@@ -166,4 +166,4 @@ export const FollowUpChat: React.FC<FollowUpChatProps> = ({ contextText, lang, s
        </div>
     </div>
   );
-};
+});

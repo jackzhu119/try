@@ -1,10 +1,9 @@
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Camera, Sparkles, Stethoscope, Pill, ArrowRight, Activity, ScanLine, ImagePlus, X, Globe, Mail, Mic, MicOff, Keyboard, Zap, Binary, Aperture } from 'lucide-react';
+import { Search, Camera, Sparkles, Stethoscope, Pill, ArrowRight, Activity, ScanLine, ImagePlus, X, Globe, Mail, Mic, MicOff, Binary, Aperture, Zap } from 'lucide-react';
 import { AppMode, DrugInfo, DiagnosisInfo, LoadingState, Language, SpeechRecognition } from './types';
 import { t } from './translations';
-// Import from Qwen Service
 import { getDrugInfoFromImage, getDrugInfoFromText, analyzeSymptoms } from './services/qwenService';
 import { ResultCard } from './components/ResultCard';
 import { DiagnosisResultCard } from './components/DiagnosisResultCard';
@@ -13,27 +12,54 @@ import { Toast, ToastType } from './components/Toast';
 
 type Tab = 'DRUG' | 'DIAGNOSIS';
 
-// --- Artistic Background Component ---
-const CyberBackground = React.memo(() => (
-  <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-[#f8fafc]">
-    {/* Noise Texture */}
-    <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
+// --- OPTIMIZATION: Static Background Component (Never Re-renders) ---
+const CyberBackground = memo(() => (
+  <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-[#f8fafc] transform-gpu">
+    {/* CSS-based Texture (Lighter than SVG filters) */}
+    <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150"></div>
     
-    {/* Subtle Grid */}
+    {/* Grid - CSS rendered */}
     <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
 
-    {/* Floating Orbs */}
+    {/* GPU Accelerated Orbs */}
     <motion.div 
-      animate={{ x: [0, 50, -50, 0], y: [0, -30, 30, 0], scale: [1, 1.1, 0.9, 1] }}
+      initial={{ x: 0, y: 0 }}
+      animate={{ x: [0, 50, -50, 0], y: [0, -30, 30, 0] }}
       transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-      className="absolute top-[-10%] left-[-10%] w-[800px] h-[800px] bg-gradient-to-br from-blue-200/40 to-cyan-200/40 rounded-full blur-[120px]"
+      className="absolute top-[-10%] left-[-10%] w-[800px] h-[800px] bg-gradient-to-br from-blue-200/40 to-cyan-200/40 rounded-full blur-[120px] will-change-transform"
     />
     <motion.div 
-      animate={{ x: [0, -40, 40, 0], y: [0, 60, -60, 0], opacity: [0.4, 0.6, 0.4] }}
+      initial={{ x: 0, y: 0 }}
+      animate={{ x: [0, -40, 40, 0], y: [0, 60, -60, 0] }}
       transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-      className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-gradient-to-tr from-indigo-200/40 to-purple-200/40 rounded-full blur-[100px]"
+      className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-gradient-to-tr from-indigo-200/40 to-purple-200/40 rounded-full blur-[100px] will-change-transform"
     />
   </div>
+), () => true); // Always return true to prevent re-renders
+
+// --- OPTIMIZATION: Memoized Header ---
+const Header = memo(({ lang, toggleLanguage }: { lang: Language, toggleLanguage: () => void }) => (
+  <motion.div 
+    initial={{ opacity: 0, y: -20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+    transition={{ duration: 0.3 }}
+    className="fixed top-0 left-0 right-0 z-40 p-4 md:p-6 flex justify-between items-center pointer-events-none"
+  >
+     <div className="pointer-events-auto flex items-center gap-2">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+           <Activity size={18} />
+        </div>
+        <span className="font-bold text-slate-700 tracking-tight hidden sm:block">SmartMed</span>
+     </div>
+    <button 
+      onClick={toggleLanguage}
+      className="pointer-events-auto bg-white/60 backdrop-blur-xl border border-white/60 shadow-sm rounded-full px-4 py-2 flex items-center gap-2 hover:bg-white transition-all text-slate-600 font-medium text-xs md:text-sm group active:scale-95"
+    >
+      <Globe size={14} className="group-hover:rotate-180 transition-transform duration-500" />
+      <span>{lang === 'zh' ? 'EN' : '中文'}</span>
+    </button>
+  </motion.div>
 ));
 
 function App() {
@@ -71,21 +97,20 @@ function App() {
 
   // --- Handlers ---
 
-  const showToast = (message: string, type: ToastType = 'info') => {
+  const showToast = useCallback((message: string, type: ToastType = 'info') => {
     setToast({ message, type, isVisible: true });
-  };
+  }, []);
 
-  const closeToast = () => {
+  const closeToast = useCallback(() => {
     setToast(prev => ({ ...prev, isVisible: false }));
-  };
+  }, []);
 
-  const toggleLanguage = () => {
+  const toggleLanguage = useCallback(() => {
     setLang(prev => prev === 'zh' ? 'en' : 'zh');
-    showToast(lang === 'zh' ? 'Switched to English' : '已切换至中文', 'success');
-  };
+  }, []);
 
   // Voice Recognition Logic
-  const toggleListening = () => {
+  const toggleListening = useCallback(() => {
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
@@ -138,25 +163,28 @@ function App() {
         showToast(T.voice_error, 'error');
       }
     }
-  };
+  }, [isListening, lang, T.voice_error, showToast]);
 
-  const handleDrugSearch = async (e: React.FormEvent) => {
+  const handleDrugSearch = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
     setLoading({ isLoading: true, message: T.loading_drug });
-    try {
-      const info = await getDrugInfoFromText(searchQuery, lang);
-      setDrugInfo(info);
-      setMode(AppMode.RESULT);
-    } catch (error: any) {
-      showToast(error.message || "Search failed", 'error');
-    } finally {
-      setLoading({ isLoading: false, message: '' });
-    }
-  };
+    // Use setTimeout to yield to main thread for UI update
+    setTimeout(async () => {
+        try {
+            const info = await getDrugInfoFromText(searchQuery, lang);
+            setDrugInfo(info);
+            setMode(AppMode.RESULT);
+        } catch (error: any) {
+            showToast(error.message || "Search failed", 'error');
+        } finally {
+            setLoading({ isLoading: false, message: '' });
+        }
+    }, 50);
+  }, [searchQuery, lang, T.loading_drug, showToast]);
 
-  const handleDrugFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDrugFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -164,62 +192,64 @@ function App() {
     
     const reader = new FileReader();
     reader.onloadend = async () => {
-      try {
-        const base64String = reader.result as string;
-        const info = await getDrugInfoFromImage(base64String, lang);
-        setDrugInfo(info);
-        setMode(AppMode.RESULT);
-      } catch (error: any) {
-        showToast(`${T.upload_fail}: ` + (error.message || "Error"), 'error');
-      } finally {
-        setLoading({ isLoading: false, message: '' });
-        if (drugFileInputRef.current) drugFileInputRef.current.value = '';
-      }
+      // Yield to main thread
+      setTimeout(async () => {
+          try {
+            const base64String = reader.result as string;
+            const info = await getDrugInfoFromImage(base64String, lang);
+            setDrugInfo(info);
+            setMode(AppMode.RESULT);
+          } catch (error: any) {
+            showToast(`${T.upload_fail}: ` + (error.message || "Error"), 'error');
+          } finally {
+            setLoading({ isLoading: false, message: '' });
+            if (drugFileInputRef.current) drugFileInputRef.current.value = '';
+          }
+      }, 50);
     };
     reader.readAsDataURL(file);
-  };
+  }, [lang, T.loading_vision, T.upload_fail, showToast]);
 
-  const handleDiagnosisFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDiagnosisFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onloadend = async () => {
+    reader.onloadend = () => {
         setDiagnosisImage(reader.result as string);
         if (diagnosisFileInputRef.current) diagnosisFileInputRef.current.value = '';
         showToast(T.image_attached, 'success');
     };
     reader.readAsDataURL(file);
-  };
+  }, [showToast, T.image_attached]);
 
-  const handleSymptomAnalysis = async () => {
+  const handleSymptomAnalysis = useCallback(async () => {
     if (!symptomsQuery.trim() && !diagnosisImage) {
         showToast(T.missing_input, 'error');
         return;
     }
 
     setLoading({ isLoading: true, message: T.loading_diagnosis });
-    try {
-      const info = await analyzeSymptoms(symptomsQuery, diagnosisImage || undefined, lang);
-      setDiagnosisInfo(info);
-      setMode(AppMode.DIAGNOSIS_RESULT);
-    } catch (error: any) {
-       showToast(`${T.diagnosis_fail}: ` + (error.message || "Error"), 'error');
-    } finally {
-      setLoading({ isLoading: false, message: '' });
-    }
-  };
+    // Yield to main thread
+    setTimeout(async () => {
+        try {
+          const info = await analyzeSymptoms(symptomsQuery, diagnosisImage || undefined, lang);
+          setDiagnosisInfo(info);
+          setMode(AppMode.DIAGNOSIS_RESULT);
+        } catch (error: any) {
+           showToast(`${T.diagnosis_fail}: ` + (error.message || "Error"), 'error');
+        } finally {
+          setLoading({ isLoading: false, message: '' });
+        }
+    }, 50);
+  }, [symptomsQuery, diagnosisImage, lang, T.missing_input, T.loading_diagnosis, T.diagnosis_fail, showToast]);
 
-  // Improved handler to prevent UI freeze
-  const handleDiagnosisItemClick = async (itemQuery: string) => {
-    // 1. Set loading state immediately to trigger UI update (Loading Overlay)
+  const handleDiagnosisItemClick = useCallback(async (itemQuery: string) => {
     setLoading({ 
         isLoading: true, 
         message: lang === 'zh' ? `正在查询 "${itemQuery}" 详情...` : `Researching "${itemQuery}"...` 
     });
 
-    // 2. Use setTimeout to push the heavy API call to the next tick
-    // Increased to 80ms to ensure the browser has time to paint the loading overlay frames
     setTimeout(async () => {
         try {
            const info = await getDrugInfoFromText(itemQuery, lang);
@@ -231,21 +261,20 @@ function App() {
            setLoading({ isLoading: false, message: '' });
         }
     }, 80);
-  };
+  }, [lang, showToast]);
 
-  const clearDiagnosisImage = () => setDiagnosisImage(null);
+  const clearDiagnosisImage = useCallback(() => setDiagnosisImage(null), []);
 
   const handleBack = useCallback(() => {
-    // Smart Back Navigation
     if (mode === AppMode.RESULT && diagnosisInfo !== null) {
       setMode(AppMode.DIAGNOSIS_RESULT);
-      setTimeout(() => setDrugInfo(null), 500);
+      setTimeout(() => setDrugInfo(null), 300); // Shorter timeout for snappier feel
     } else {
       setMode(AppMode.HOME);
       setTimeout(() => {
           setDrugInfo(null);
           setDiagnosisInfo(null);
-      }, 500); 
+      }, 300); 
     }
   }, [mode, diagnosisInfo]);
 
@@ -253,7 +282,9 @@ function App() {
 
   return (
     <div className="min-h-screen text-slate-800 font-sans relative overflow-x-hidden flex flex-col selection:bg-indigo-500/20">
+      {/* Background is now memoized and won't re-render on state changes */}
       <CyberBackground />
+      
       <Toast 
         message={toast.message} 
         type={toast.type} 
@@ -264,30 +295,9 @@ function App() {
       <input type="file" ref={drugFileInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleDrugFileUpload} />
       <input type="file" ref={diagnosisFileInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleDiagnosisFileUpload} />
 
-      {/* Header - Only visible in HOME mode to prevent overlap with Result cards */}
       <AnimatePresence>
         {mode === AppMode.HOME && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="fixed top-0 left-0 right-0 z-40 p-4 md:p-6 flex justify-between items-center pointer-events-none"
-          >
-             <div className="pointer-events-auto flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg">
-                   <Activity size={18} />
-                </div>
-                <span className="font-bold text-slate-700 tracking-tight hidden sm:block">SmartMed</span>
-             </div>
-            <button 
-              onClick={toggleLanguage}
-              className="pointer-events-auto bg-white/50 backdrop-blur-md border border-white/60 shadow-sm rounded-full px-4 py-2 flex items-center gap-2 hover:bg-white transition-all text-slate-600 font-medium text-xs md:text-sm group"
-            >
-              <Globe size={14} className="group-hover:rotate-180 transition-transform duration-500" />
-              <span>{lang === 'zh' ? 'EN' : '中文'}</span>
-            </button>
-          </motion.div>
+          <Header lang={lang} toggleLanguage={toggleLanguage} />
         )}
       </AnimatePresence>
 
@@ -295,7 +305,6 @@ function App() {
         
         {loading.isLoading && <LoadingOverlay message={loading.message} type={activeTab} lang={lang} />}
 
-        {/* --- RESULT VIEWS --- */}
         <AnimatePresence mode="wait">
           {mode === AppMode.RESULT && drugInfo ? (
             <motion.div 
@@ -303,7 +312,7 @@ function App() {
               initial={{ opacity: 0, y: 20 }} 
               animate={{ opacity: 1, y: 0 }} 
               exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.3, ease: "easeOut" }} // Faster transition
               className="w-full h-screen fixed inset-0 z-50 bg-[#f8fafc]"
             >
               <ResultCard info={drugInfo} onBack={handleBack} lang={lang} />
@@ -314,7 +323,7 @@ function App() {
               initial={{ opacity: 0, y: 20 }} 
               animate={{ opacity: 1, y: 0 }} 
               exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              transition={{ duration: 0.3, ease: "easeOut" }} // Faster transition
               className="w-full h-screen fixed inset-0 z-50 bg-[#f8fafc]"
             >
               <DiagnosisResultCard 
@@ -330,32 +339,32 @@ function App() {
             <motion.div 
               key="home"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
               className="flex-1 flex flex-col lg:flex-row items-center justify-center p-4 md:p-8 gap-8 lg:gap-20 max-w-7xl mx-auto w-full min-h-[90vh]"
             >
               
-              {/* Left Column: Branding */}
+              {/* Left Column */}
               <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-8 lg:flex-1 relative">
-                 {/* Decor elements */}
                  <div className="absolute -top-20 -left-20 opacity-20 pointer-events-none hidden lg:block">
                     <Binary size={200} className="text-slate-400" />
                  </div>
 
-                 <div className="relative inline-block">
+                 <div className="relative inline-block transform-gpu">
                    <motion.div 
                      animate={{ 
                         boxShadow: activeTab === 'DRUG' 
                             ? "0 20px 50px -12px rgba(59, 130, 246, 0.5)" 
                             : "0 20px 50px -12px rgba(99, 102, 241, 0.5)"
                      }}
-                     className={`w-28 h-28 rounded-[2.5rem] flex items-center justify-center transition-all duration-700 relative z-10 bg-gradient-to-br ${activeTab === 'DRUG' ? 'from-blue-500 to-cyan-400' : 'from-indigo-500 to-purple-500'}`}
+                     className={`w-28 h-28 rounded-[2.5rem] flex items-center justify-center transition-colors duration-500 relative z-10 bg-gradient-to-br ${activeTab === 'DRUG' ? 'from-blue-500 to-cyan-400' : 'from-indigo-500 to-purple-500'}`}
                    >
                      <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
-                            initial={{ scale: 0.5, opacity: 0, rotate: -45 }}
+                            initial={{ scale: 0.8, opacity: 0, rotate: -30 }}
                             animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                            exit={{ scale: 0.5, opacity: 0, rotate: 45 }}
-                            transition={{ type: "spring", stiffness: 200 }}
+                            exit={{ scale: 0.8, opacity: 0, rotate: 30 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 20 }}
                         >
                              {activeTab === 'DRUG' ? <Pill size={56} className="text-white" /> : <Stethoscope size={56} className="text-white" />}
                         </motion.div>
@@ -385,15 +394,11 @@ function App() {
               </div>
 
               {/* Right Column: Interaction Hub */}
-              <div className="w-full max-w-md lg:max-w-[540px] lg:flex-1 perspective-1000">
-                 
-                 {/* Glass Panel */}
+              <div className="w-full max-w-md lg:max-w-[540px] lg:flex-1 perspective-1000 transform-gpu">
                  <div className="relative bg-white/60 backdrop-blur-2xl border border-white/50 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] rounded-[3rem] p-3 md:p-5 overflow-hidden group">
-                    
-                    {/* Inner sheen effect */}
                     <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent pointer-events-none"></div>
 
-                    {/* Navigation Pills */}
+                    {/* Navigation Pills - No complex animation to save frames */}
                     <div className="flex bg-slate-100/50 p-1.5 rounded-[2rem] mb-6 relative z-10 backdrop-blur-sm">
                       <button 
                         onClick={() => setActiveTab('DRUG')}
@@ -409,28 +414,23 @@ function App() {
                       </button>
                     </div>
 
-                    {/* Content Area */}
                     <div className="bg-white/50 rounded-[2.5rem] p-6 min-h-[440px] flex flex-col relative border border-white/60">
                       <AnimatePresence mode="wait">
                         {activeTab === 'DRUG' ? (
-                          /* DRUG SEARCH UI */
                           <motion.div
                             key="drug-panel"
-                            initial={{ opacity: 0, scale: 0.95 }}
+                            initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.3 }}
+                            exit={{ opacity: 0, scale: 0.98 }}
+                            transition={{ duration: 0.2 }}
                             className="flex flex-col h-full gap-5"
                           >
-                             {/* Scan Button - Large Hero Action */}
                              <button
                                 onClick={() => drugFileInputRef.current?.click()}
                                 className="relative flex-1 group overflow-hidden rounded-[2rem] bg-slate-900 shadow-2xl transition-all hover:scale-[1.01] active:scale-[0.99]"
                              >
-                                {/* Animated Gradient Bg */}
                                 <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 opacity-90 group-hover:opacity-100 transition-opacity"></div>
                                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150"></div>
-                                
                                 <div className="relative z-10 h-full flex flex-col items-center justify-center gap-4 p-8">
                                    <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-inner group-hover:scale-110 transition-transform duration-500">
                                       <Camera size={36} className="text-white drop-shadow-md" />
@@ -442,11 +442,9 @@ function App() {
                                 </div>
                              </button>
 
-                             {/* Manual Search Input */}
                              <div className="flex flex-col gap-3">
                                 <span className="text-center text-xs font-bold text-slate-400 uppercase tracking-widest">{T.or_manual}</span>
                                 <form onSubmit={handleDrugSearch} className="relative group">
-                                  <div className="absolute inset-0 bg-gradient-to-r from-blue-200 to-cyan-200 rounded-2xl blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
                                   <div className="relative flex items-center bg-white rounded-2xl shadow-sm border border-slate-200 focus-within:border-blue-400 transition-colors p-1">
                                       <div className="pl-4 text-slate-400">
                                          <Search size={20} />
@@ -470,16 +468,14 @@ function App() {
                              </div>
                           </motion.div>
                         ) : (
-                          /* DIAGNOSIS UI */
                           <motion.div
                             key="diagnosis-panel"
-                            initial={{ opacity: 0, scale: 0.95 }}
+                            initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.3 }}
+                            exit={{ opacity: 0, scale: 0.98 }}
+                            transition={{ duration: 0.2 }}
                             className="flex flex-col h-full gap-5"
                           >
-                             {/* Header */}
                              <div className="flex justify-between items-end">
                                 <div className="space-y-1">
                                    <h3 className="text-xl font-bold text-slate-800">{T.symptom_title}</h3>
@@ -491,26 +487,15 @@ function App() {
                                 </div>
                              </div>
 
-                             {/* Main Input Area - Glass Card */}
-                             <div className={`relative flex-1 bg-white rounded-[1.5rem] border transition-all duration-300 flex flex-col overflow-hidden shadow-sm ${isListening ? 'border-red-300 ring-4 ring-red-50' : 'border-slate-200 hover:border-indigo-300'}`}>
-                                
-                                {/* Text Input */}
+                             <div className={`relative flex-1 bg-white rounded-[1.5rem] border transition-colors duration-300 flex flex-col overflow-hidden shadow-sm ${isListening ? 'border-red-300 ring-4 ring-red-50' : 'border-slate-200 hover:border-indigo-300'}`}>
                                 <textarea
                                   value={symptomsQuery}
                                   onChange={(e) => setSymptomsQuery(e.target.value)}
                                   placeholder={isListening ? "" : T.symptom_placeholder}
                                   className="flex-1 w-full bg-transparent p-5 resize-none outline-none text-slate-700 placeholder:text-slate-300 text-base leading-relaxed"
                                 />
-
-                                {/* Voice Visualizer Overlay */}
-                                <AnimatePresence>
-                                  {isListening && (
-                                    <motion.div 
-                                      initial={{ opacity: 0 }}
-                                      animate={{ opacity: 1 }}
-                                      exit={{ opacity: 0 }}
-                                      className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-20"
-                                    >
+                                {isListening && (
+                                  <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-20">
                                        <div className="flex items-center gap-1.5 h-12">
                                           {[1,2,3,4,5].map(i => (
                                              <motion.div
@@ -522,14 +507,10 @@ function App() {
                                           ))}
                                        </div>
                                        <p className="text-red-500 font-bold tracking-widest text-sm uppercase">{T.voice_listening}</p>
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
-
-                                {/* Toolbar Bottom */}
+                                  </div>
+                                )}
                                 <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
                                    <div className="flex items-center gap-2">
-                                      {/* Voice Toggle */}
                                       <button
                                         onClick={toggleListening}
                                         className={`p-2.5 rounded-xl transition-all duration-300 flex items-center gap-2 ${
@@ -540,8 +521,6 @@ function App() {
                                       >
                                         {isListening ? <MicOff size={18} /> : <Mic size={18} />}
                                       </button>
-                                      
-                                      {/* Image Upload Trigger */}
                                       <button
                                         onClick={() => diagnosisFileInputRef.current?.click()}
                                         className={`p-2.5 rounded-xl transition-all duration-300 flex items-center gap-2 ${
@@ -549,46 +528,33 @@ function App() {
                                             ? 'bg-indigo-100 text-indigo-600 border border-indigo-200'
                                             : 'bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200'
                                         }`}
-                                        title={T.input_image_label}
                                       >
                                          <ImagePlus size={18} />
                                       </button>
                                    </div>
-                                   
                                    <div className="text-xs text-slate-400 font-medium">
                                       {symptomsQuery.length > 0 ? `${symptomsQuery.length} chars` : 'Ready'}
                                    </div>
                                 </div>
                              </div>
 
-                             {/* Image Preview (If Exists) */}
-                             <AnimatePresence>
-                                {diagnosisImage && (
-                                   <motion.div 
-                                     initial={{ opacity: 0, height: 0 }}
-                                     animate={{ opacity: 1, height: 'auto' }}
-                                     exit={{ opacity: 0, height: 0 }}
-                                     className="relative overflow-hidden"
-                                   >
-                                      <div className="bg-white p-2 rounded-xl border border-indigo-100 shadow-sm flex items-center gap-3">
-                                         <img src={diagnosisImage} alt="Preview" className="w-12 h-12 rounded-lg object-cover bg-slate-100" />
-                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-bold text-slate-700 truncate">{T.image_attached}</p>
-                                            <p className="text-xs text-indigo-500">Analysis Pending</p>
-                                         </div>
-                                         <button onClick={clearDiagnosisImage} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-red-500 transition-colors">
-                                            <X size={16} />
-                                         </button>
-                                      </div>
-                                   </motion.div>
-                                )}
-                             </AnimatePresence>
+                             {diagnosisImage && (
+                               <div className="relative overflow-hidden bg-white p-2 rounded-xl border border-indigo-100 shadow-sm flex items-center gap-3">
+                                  <img src={diagnosisImage} alt="Preview" className="w-12 h-12 rounded-lg object-cover bg-slate-100" />
+                                  <div className="flex-1 min-w-0">
+                                     <p className="text-sm font-bold text-slate-700 truncate">{T.image_attached}</p>
+                                     <p className="text-xs text-indigo-500">Analysis Pending</p>
+                                  </div>
+                                  <button onClick={clearDiagnosisImage} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-red-500 transition-colors">
+                                     <X size={16} />
+                                  </button>
+                               </div>
+                             )}
 
-                             {/* Action Button */}
                              <button 
                                 onClick={handleSymptomAnalysis}
                                 disabled={!symptomsQuery.trim() && !diagnosisImage}
-                                className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none disabled:hover:scale-100 flex items-center justify-center gap-2 group"
+                                className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none disabled:hover:scale-100 flex items-center justify-center gap-2 group will-change-transform"
                               >
                                 <span>{T.start_diagnosis}</span>
                                 <Sparkles size={18} className="group-hover:rotate-12 transition-transform" />
@@ -605,7 +571,6 @@ function App() {
         </AnimatePresence>
       </div>
 
-      {/* Footer Contact - Fixed Bottom Right */}
       <div className="fixed bottom-4 right-4 z-50">
         <div className="bg-white/80 backdrop-blur-md border border-white/60 shadow-lg rounded-full px-4 py-2 flex items-center gap-2 text-xs text-slate-500 hover:scale-105 transition-transform hover:bg-white hover:text-blue-600 cursor-pointer group">
           <Mail size={14} className="group-hover:animate-bounce" />
