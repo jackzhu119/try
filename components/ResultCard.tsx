@@ -5,7 +5,7 @@ import { DrugInfo, Language } from '../types';
 import { t } from '../translations';
 import { 
   ArrowLeft, Volume2, StopCircle, AlertTriangle, 
-  Pill, FileText, Thermometer, Info, ShieldCheck, HeartPulse, Activity, Copy, Check, Type
+  Pill, FileText, Thermometer, Info, ShieldCheck, HeartPulse, Activity, Copy, Check, Type, Siren
 } from 'lucide-react';
 import { FollowUpChat } from './FollowUpChat';
 
@@ -36,7 +36,11 @@ export const ResultCard: React.FC<ResultCardProps> = React.memo(({ info, onBack,
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(info.summary);
+    const textToRead = info.isHighRisk 
+      ? `${T.high_risk_alert}. ${info.riskReason}. ${info.summary}`
+      : info.summary;
+
+    const utterance = new SpeechSynthesisUtterance(textToRead);
     utterance.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
     utterance.rate = 1.0;
     utterance.onend = () => setIsPlaying(false);
@@ -47,7 +51,7 @@ export const ResultCard: React.FC<ResultCardProps> = React.memo(({ info, onBack,
 
   const handleCopy = () => {
     const text = `
-💊 ${info.name}
+💊 ${info.name} ${info.isHighRisk ? '[⚠️ High Risk]' : ''}
 ---
 📝 ${T.indications}: ${info.indications}
 💊 ${T.dosage}: ${info.dosage}
@@ -155,10 +159,33 @@ export const ResultCard: React.FC<ResultCardProps> = React.memo(({ info, onBack,
         initial="hidden"
         animate="visible"
       >
-        <div style={contentStyle} className="transition-all duration-300">
+        <div style={contentStyle} className="transition-all duration-300 space-y-4">
           
+          {/* --- HIGH RISK ALERT BANNER --- */}
+          {info.isHighRisk && (
+            <motion.div 
+              variants={itemVariants} 
+              className="bg-red-600 rounded-3xl p-5 text-white shadow-xl shadow-red-600/30 flex items-start gap-4 border border-red-500/50 relative overflow-hidden"
+            >
+              {/* Animated Background Strips */}
+              <div className="absolute inset-0 opacity-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,#000_10px,#000_20px)] pointer-events-none"></div>
+
+              <div className="bg-white/20 p-3 rounded-full shrink-0 animate-pulse">
+                <Siren size={32} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-[1.2em] font-bold mb-1 flex items-center gap-2">
+                  {T.high_risk_alert}
+                </h2>
+                <p className="text-white/90 text-[0.95em] font-medium leading-relaxed">
+                  {info.riskReason || T.high_risk_desc}
+                </p>
+              </div>
+            </motion.div>
+          )}
+
           {/* 1. Hero Summary Card */}
-          <motion.div variants={itemVariants} className="bg-gradient-to-br from-indigo-600 to-blue-500 rounded-3xl p-6 text-white shadow-xl shadow-blue-500/20 relative overflow-hidden mb-4">
+          <motion.div variants={itemVariants} className="bg-gradient-to-br from-indigo-600 to-blue-500 rounded-3xl p-6 text-white shadow-xl shadow-blue-500/20 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-3 opacity-20">
               <HeartPulse size={120} />
             </div>

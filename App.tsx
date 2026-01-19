@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Camera, Sparkles, Stethoscope, Pill, ArrowRight, Activity, ScanLine, ImagePlus, X, Globe, Mail, Mic, MicOff } from 'lucide-react';
+import { Search, Camera, Sparkles, Stethoscope, Pill, ArrowRight, Activity, ScanLine, ImagePlus, X, Globe, Mail, Mic, MicOff, Keyboard } from 'lucide-react';
 import { AppMode, DrugInfo, DiagnosisInfo, LoadingState, Language, SpeechRecognition } from './types';
 import { t } from './translations';
 // Import from Qwen Service
@@ -95,35 +95,54 @@ function App() {
       setIsListening(false);
     } else {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      
       if (!SpeechRecognition) {
         showToast(T.voice_error, 'error');
         return;
       }
 
-      const recognition = new SpeechRecognition();
-      recognition.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
+        recognition.continuous = false; // Stop after one sentence for simplicity
+        recognition.interimResults = true; // Show results as they speak
 
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setSymptomsQuery((prev) => prev + (prev ? ' ' : '') + transcript);
-        setIsListening(false);
-      };
+        recognition.onstart = () => {
+          setIsListening(true);
+        };
 
-      recognition.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
-        setIsListening(false);
+        recognition.onresult = (event: any) => {
+          // Get the latest result
+          const lastResultIndex = event.results.length - 1;
+          const transcript = event.results[lastResultIndex][0].transcript;
+          
+          if (event.results[lastResultIndex].isFinal) {
+             setSymptomsQuery((prev) => {
+               const needsSpace = prev.length > 0 && !prev.endsWith(' ');
+               return prev + (needsSpace ? ' ' : '') + transcript;
+             });
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error("Speech recognition error", event.error);
+          setIsListening(false);
+          // Only show toast for actual errors, not 'no-speech' which happens often
+          if (event.error !== 'no-speech') {
+             showToast(T.voice_error, 'error');
+          }
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+      } catch (e) {
+        console.error("Voice start error", e);
         showToast(T.voice_error, 'error');
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-      setIsListening(true);
+      }
     }
   };
 
@@ -201,8 +220,7 @@ function App() {
 
   const handleBack = useCallback(() => {
     setMode(AppMode.HOME);
-    // Performance Optimization: 
-    // Delay clearing data to ensure the exit animation (AnimatePresence) has the data it needs to render.
+    // Performance Optimization
     setTimeout(() => {
         setDrugInfo(null);
         setDiagnosisInfo(null);
@@ -306,7 +324,7 @@ function App() {
 
                 <div className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 backdrop-blur-sm border border-slate-200 text-sm font-medium text-slate-500 shadow-sm mt-8">
                    <div className={`w-2 h-2 rounded-full animate-pulse ${activeTab === 'DRUG' ? 'bg-blue-500' : 'bg-indigo-500'}`}></div>
-                   {T.powered_by} {activeTab === 'DRUG' ? 'Qwen Plus' : 'Qwen Max'}
+                   {T.powered_by}
                  </div>
               </div>
 
@@ -344,7 +362,7 @@ function App() {
                     </div>
 
                     {/* Interaction Content */}
-                    <div className="bg-white/80 rounded-[2rem] p-6 lg:p-8 shadow-sm border border-white/80 min-h-[360px] flex flex-col justify-center">
+                    <div className="bg-white/80 rounded-[2rem] p-6 lg:p-8 shadow-sm border border-white/80 min-h-[420px] flex flex-col justify-start">
                       <AnimatePresence mode="wait">
                         {activeTab === 'DRUG' ? (
                           <motion.div
@@ -353,7 +371,7 @@ function App() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
                             transition={{ duration: 0.3 }}
-                            className="space-y-6"
+                            className="space-y-6 h-full flex flex-col justify-center"
                           >
                             <button
                               onClick={() => drugFileInputRef.current?.click()}
@@ -405,77 +423,98 @@ function App() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
                             transition={{ duration: 0.3 }}
-                            className="space-y-4"
+                            className="space-y-5"
                           >
-                            <div className="flex items-center gap-2 text-indigo-900 font-semibold mb-2">
+                            <div className="flex items-center gap-2 text-indigo-900 font-semibold">
                                 <Sparkles size={18} className="text-indigo-500" />
                                 <span>{T.symptom_title}</span>
                             </div>
                             
-                            <div className="relative group">
-                              <div className={`absolute -inset-0.5 bg-gradient-to-r ${isListening ? 'from-red-500 via-orange-500 to-red-500 animate-pulse' : 'from-indigo-500 via-purple-500 to-pink-500'} rounded-2xl blur opacity-30 group-focus-within:opacity-75 transition duration-500`}></div>
-                              
-                              <div className="relative bg-white rounded-xl overflow-hidden shadow-sm">
-                                  <textarea
-                                    value={symptomsQuery}
-                                    onChange={(e) => setSymptomsQuery(e.target.value)}
-                                    placeholder={isListening ? T.listening : T.symptom_placeholder}
-                                    rows={diagnosisImage ? 3 : 5}
-                                    className="w-full bg-transparent text-slate-800 text-lg p-4 pr-12 focus:outline-none resize-none placeholder:text-slate-400"
-                                  />
-                                  
-                                  {/* Voice Input Button */}
-                                  <button
-                                    onClick={toggleListening}
-                                    className={`absolute top-2 right-2 p-2 rounded-full transition-all duration-300 ${isListening ? 'bg-red-50 text-red-600 scale-110 ring-2 ring-red-200' : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
-                                    title={T.click_to_speak}
-                                  >
-                                    {isListening ? <MicOff size={20} className="animate-pulse" /> : <Mic size={20} />}
-                                  </button>
+                            {/* Section 1: Text & Voice */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1 block">
+                                    {T.input_text_label}
+                                </label>
+                                <div className={`relative bg-white rounded-2xl border transition-all duration-300 overflow-hidden ${isListening ? 'border-red-400 ring-4 ring-red-100' : 'border-slate-200 focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-50'}`}>
+                                    <textarea
+                                      value={symptomsQuery}
+                                      onChange={(e) => setSymptomsQuery(e.target.value)}
+                                      placeholder={isListening ? "" : T.symptom_placeholder}
+                                      rows={4}
+                                      className="w-full bg-transparent text-slate-800 p-4 pb-12 focus:outline-none resize-none placeholder:text-slate-400"
+                                    />
+                                    
+                                    {/* Bottom Action Bar inside Text Area */}
+                                    <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center">
+                                         <div className="text-xs text-slate-400 px-2 flex items-center gap-1">
+                                            {isListening && <span className="flex h-2 w-2 rounded-full bg-red-500 animate-ping"></span>}
+                                            {isListening ? <span className="text-red-500 font-medium">{T.voice_listening}</span> : <Keyboard size={14} />}
+                                         </div>
+                                         <button
+                                            onClick={toggleListening}
+                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                                                isListening 
+                                                ? 'bg-red-500 text-white shadow-lg shadow-red-500/30' 
+                                                : 'bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'
+                                            }`}
+                                          >
+                                            {isListening ? (
+                                                <><MicOff size={14} /> <span>{T.stop}</span></>
+                                            ) : (
+                                                <><Mic size={14} /> <span>{T.voice_idle}</span></>
+                                            )}
+                                          </button>
+                                    </div>
+                                </div>
+                            </div>
 
-                                  {diagnosisImage && (
-                                      <div className="px-4 pb-4">
-                                          <div className="relative inline-block group/img">
-                                              <img 
-                                                src={diagnosisImage} 
-                                                alt="Symptom preview" 
-                                                className="h-20 w-20 object-cover rounded-lg border border-indigo-100 shadow-sm"
-                                              />
-                                              <button 
-                                                onClick={clearDiagnosisImage}
-                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
-                                              >
-                                                  <X size={12} />
-                                              </button>
+                            {/* Section 2: Image Upload */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1 block">
+                                    {T.input_image_label}
+                                </label>
+                                {diagnosisImage ? (
+                                    <div className="relative group/img rounded-xl overflow-hidden border border-indigo-200 bg-indigo-50/50 p-2 flex items-center gap-4">
+                                         <img 
+                                            src={diagnosisImage} 
+                                            alt="Symptom preview" 
+                                            className="h-16 w-16 object-cover rounded-lg shadow-sm bg-white"
+                                          />
+                                          <div className="flex-1">
+                                             <span className="text-sm font-medium text-indigo-900 block">{T.image_attached}</span>
+                                             <span className="text-xs text-indigo-400">Ready for analysis</span>
                                           </div>
-                                      </div>
-                                  )}
-                                  
-                                  <div className="flex justify-between items-center px-2 pb-2 bg-slate-50/50 border-t border-slate-100 pt-2">
-                                      <button
-                                        onClick={() => diagnosisFileInputRef.current?.click()}
-                                        className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
-                                      >
-                                          <ImagePlus size={20} />
-                                          <span>{T.add_image}</span>
-                                      </button>
-                                      <span className="text-xs text-slate-400 px-2 hidden sm:inline-block">
-                                          {diagnosisImage ? T.image_attached : T.camera_hint}
-                                      </span>
-                                  </div>
-                              </div>
+                                          <button 
+                                            onClick={clearDiagnosisImage}
+                                            className="p-2 bg-white text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+                                            title={T.remove_image}
+                                          >
+                                            <X size={18} />
+                                          </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                      onClick={() => diagnosisFileInputRef.current?.click()}
+                                      className="w-full border-2 border-dashed border-slate-200 rounded-xl p-4 text-slate-400 hover:border-indigo-400 hover:text-indigo-500 hover:bg-indigo-50/30 transition-all flex items-center justify-center gap-2 group/btn"
+                                    >
+                                        <div className="bg-slate-100 p-2 rounded-full group-hover/btn:bg-white transition-colors">
+                                            <ImagePlus size={20} />
+                                        </div>
+                                        <span className="font-medium text-sm">{T.add_image}</span>
+                                    </button>
+                                )}
                             </div>
 
                             <button 
                               onClick={handleSymptomAnalysis}
                               disabled={!symptomsQuery.trim() && !diagnosisImage}
-                              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none disabled:hover:scale-100 flex items-center justify-center gap-2"
+                              className="w-full mt-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none disabled:hover:scale-100 flex items-center justify-center gap-2"
                             >
                               <span>{T.start_diagnosis}</span>
                               <ArrowRight size={20} />
                             </button>
                             
-                            <p className="text-center text-xs text-slate-400 mt-2">
+                            <p className="text-center text-xs text-slate-400">
                                {T.disclaimer_hint}
                             </p>
                           </motion.div>

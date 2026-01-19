@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Bot, User, Sparkles } from 'lucide-react';
@@ -22,7 +23,6 @@ export const FollowUpChat: React.FC<FollowUpChatProps> = ({ contextText, lang, s
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Only scroll to bottom when the number of messages changes (i.e. new message added).
   useEffect(() => {
     if (messages.length > 0) {
       scrollToBottom();
@@ -57,7 +57,7 @@ export const FollowUpChat: React.FC<FollowUpChatProps> = ({ contextText, lang, s
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'ai',
-        content: lang === 'zh' ? "抱歉，我现在有点累，无法回答这个问题。" : "Sorry, I'm unable to answer right now.",
+        content: lang === 'zh' ? "抱歉，我现在无法回答这个问题。" : "Sorry, I'm unable to answer right now.",
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -68,10 +68,8 @@ export const FollowUpChat: React.FC<FollowUpChatProps> = ({ contextText, lang, s
 
   return (
     <div className="flex flex-col h-full bg-white/50 backdrop-blur-sm rounded-3xl border border-white/60 shadow-lg overflow-hidden relative group">
-       {/* Background Decoration */}
        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full blur-3xl -z-10 opacity-50"></div>
 
-       {/* Header */}
        <div className="p-4 border-b border-indigo-50/50 bg-white/40 flex items-center gap-2">
          <div className="bg-indigo-100 p-1.5 rounded-lg text-indigo-600">
             <Bot size={18} />
@@ -79,7 +77,6 @@ export const FollowUpChat: React.FC<FollowUpChatProps> = ({ contextText, lang, s
          <span className="font-semibold text-slate-700 text-sm">{T.ask_dr_ai}</span>
        </div>
 
-       {/* Messages Area */}
        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[250px] max-h-[400px]">
           {messages.length === 0 && (
              <div className="text-center py-8 space-y-4">
@@ -90,7 +87,6 @@ export const FollowUpChat: React.FC<FollowUpChatProps> = ({ contextText, lang, s
                 <p className="text-slate-400 text-sm max-w-[200px] mx-auto leading-relaxed">
                    {lang === 'zh' ? "我是您的专属 AI 医疗顾问，有任何疑问都可以问我。" : "I am your AI medical consultant. Feel free to ask me anything."}
                 </p>
-                {/* Suggestions */}
                 <div className="flex flex-wrap justify-center gap-2 mt-4">
                   {suggestions.map((s, i) => (
                     <button
@@ -146,7 +142,6 @@ export const FollowUpChat: React.FC<FollowUpChatProps> = ({ contextText, lang, s
           <div ref={messagesEndRef} />
        </div>
 
-       {/* Input Area */}
        <div className="p-3 bg-white border-t border-slate-100">
           <form 
             onSubmit={(e) => { e.preventDefault(); handleSend(input); }}

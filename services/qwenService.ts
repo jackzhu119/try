@@ -1,43 +1,64 @@
+
 import { DrugInfo, DiagnosisInfo, Language } from "../types";
 
 const API_KEY = process.env.API_KEY;
 
-// Use proxy paths configured in vite.config.ts / vercel.json to avoid CORS
+// Proxies defined in vite.config.ts / vercel.json
 const TEXT_API_URL = "/api/qwen/text"; 
 const VL_API_URL = "/api/qwen/multimodal";
 
-// Helper to call Qwen API
-const callQwen = async (messages: any[], model: string = 'qwen-plus') => {
-  if (!API_KEY) throw new Error("API Key is missing");
+// --- Helper Functions ---
 
-  try {
-    const response = await fetch(TEXT_API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: model,
-        input: { messages: messages },
-        parameters: { result_format: 'message' } // simplified return
-      })
-    });
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.message || "Qwen API Error");
+const extractJSON = (text: string) => {
+    try {
+        // 1. Try to find JSON block wrapped in markdown
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) return JSON.parse(jsonMatch[1]);
+        
+        // 2. Try to find the first '{' and last '}'
+        const firstBrace = text.indexOf('{');
+        const lastBrace = text.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+             return JSON.parse(text.substring(firstBrace, lastBrace + 1));
+        }
+        
+        return JSON.parse(text);
+    } catch (e) {
+        console.error("JSON Parse Error", e, text);
+        throw new Error("Failed to parse AI response.");
     }
-
-    const data = await response.json();
-    return data.output.choices[0].message.content;
-  } catch (error) {
-    console.error("Qwen Service Error:", error);
-    throw error;
-  }
 };
 
-// Helper to call Qwen VL API
+const callQwenText = async (messages: any[], model: string = 'qwen-plus') => {
+    if (!API_KEY) throw new Error("API Key is missing");
+  
+    try {
+      const response = await fetch(TEXT_API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: model,
+          input: { messages: messages },
+          parameters: { result_format: 'message' } 
+        })
+      });
+  
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || "Qwen API Error");
+      }
+  
+      const data = await response.json();
+      return data.output.choices[0].message.content;
+    } catch (error) {
+      console.error("Qwen Service Error:", error);
+      throw error;
+    }
+};
+
 const callQwenVL = async (messages: any[]) => {
     if (!API_KEY) throw new Error("API Key is missing");
   
@@ -50,7 +71,7 @@ const callQwenVL = async (messages: any[]) => {
           'X-DashScope-WorkSpace': 'modal'
         },
         body: JSON.stringify({
-          model: 'qwen-vl-max',
+          model: 'qwen-vl-max', // Using VL-Max for better recognition
           input: { messages: messages },
           parameters: {}
         })
@@ -62,19 +83,27 @@ const callQwenVL = async (messages: any[]) => {
       }
   
       const data = await response.json();
-      return data.output.choices[0].message.content[0].text;
+      // Qwen VL structure is slightly different
+      return data.output.choices[0].message.content[0].text; 
     } catch (error) {
       console.error("Qwen VL Service Error:", error);
       throw error;
     }
-  };
+};
 
-// --- Prompts ---
+// --- System Prompts ---
 
 const getSystemPrompt = (lang: Language, type: 'DRUG' | 'DIAGNOSIS') => {
+    const langInstruction = lang === 'zh' ? 'Output strictly in SIMPLIFIED CHINESE.' : 'Output strictly in ENGLISH.';
+
     if (type === 'DRUG') {
       return `You are a senior clinical pharmacist. 
-      Based on the user's input, generate a detailed drug instruction manual in JSON format.
+      Analyze the input (drug name or image description) and generate a JSON object.
+      
+      CRITICAL SAFETY CHECK:
+      Analyze if this drug is considered "High Risk" or "High Alert" (e.g., Antibiotics, Opioids, Anticoagulants, Insulin).
+      If yes, set "isHighRisk" to true and explain why in "riskReason".
+
       JSON Schema:
       {
         "name": "Drug Name",
@@ -84,78 +113,76 @@ const getSystemPrompt = (lang: Language, type: 'DRUG' | 'DIAGNOSIS') => {
         "storage": "Storage",
         "sideEffects": "Side Effects",
         "usage_tips": "3-5 tips",
-        "summary": "150-word summary"
+        "summary": "150-word summary",
+        "isHighRisk": boolean,
+        "riskReason": "Short warning string"
       }
-      If unrecognized, set name to "Unrecognized".
-      Respond in **${lang === 'zh' ? 'SIMPLIFIED CHINESE' : 'ENGLISH'}** only. Return ONLY JSON.`;
+      
+      ${langInstruction} Return ONLY valid JSON. Do not include markdown formatting if possible.`;
     } else {
       return `You are a General Practitioner. 
-      Perform a differential diagnosis based on symptoms/images.
+      Perform a differential diagnosis based on symptoms.
+      
       JSON Schema:
       {
         "urgency": "Low/Medium/High",
-        "urgency_reason": "Reason",
+        "urgency_reason": "Reason for urgency level",
         "summary": "100-word summary",
         "potential_conditions": [
-          { "name": "Condition", "probability": "High/Med/Low", "explanation": "Why?", "medications": ["Meds"], "treatments": ["Advice"] }
+          { 
+            "name": "Condition Name", 
+            "probability": "High/Med/Low", 
+            "explanation": "Reasoning", 
+            "medications": ["OTC Med 1", "OTC Med 2"], 
+            "treatments": ["Home remedy 1"] 
+          }
         ],
-        "lifestyle_advice": "Advice"
+        "lifestyle_advice": "General advice"
       }
-      Respond in **${lang === 'zh' ? 'SIMPLIFIED CHINESE' : 'ENGLISH'}** only. Return ONLY JSON.`;
+      
+      ${langInstruction} Return ONLY valid JSON.`;
     }
 };
 
-const extractJSON = (text: string) => {
-    // Try to find JSON block if wrapped in markdown code blocks
-    const jsonMatch = text.match(/```json\s*(\{[\s\S]*\})\s*```/);
-    if (jsonMatch) return JSON.parse(jsonMatch[1]);
-    
-    // Try to find raw JSON object
-    const rawMatch = text.match(/\{[\s\S]*\}/);
-    if (rawMatch) return JSON.parse(rawMatch[0]);
-    
-    return JSON.parse(text);
-};
-
-// --- API Methods ---
+// --- Exported Methods ---
 
 export const getDrugInfoFromText = async (query: string, lang: Language): Promise<DrugInfo> => {
     const prompt = getSystemPrompt(lang, 'DRUG');
     const messages = [
         { role: 'system', content: prompt },
-        { role: 'user', content: lang === 'zh' ? `查询药品：${query}` : `Identify drug: ${query}` }
+        { role: 'user', content: query }
     ];
-
-    const text = await callQwen(messages);
+    const text = await callQwenText(messages);
     return extractJSON(text) as DrugInfo;
 };
 
 export const getDrugInfoFromImage = async (base64Image: string, lang: Language): Promise<DrugInfo> => {
+    // Qwen VL Max handles base64 data URIs
     const prompt = getSystemPrompt(lang, 'DRUG');
     const messages = [
         {
             role: 'user',
             content: [
-                { image: base64Image }, // DashScope supports data URI now
-                { text: prompt + (lang === 'zh' ? "\n识别图中的药品" : "\nIdentify the drug") }
+                { image: base64Image },
+                { text: prompt + (lang === 'zh' ? "\n请识别图片中的药品并输出JSON。" : "\nIdentify drug and output JSON.") }
             ]
         }
     ];
-
     const text = await callQwenVL(messages);
     return extractJSON(text) as DrugInfo;
 };
 
 export const analyzeSymptoms = async (symptoms: string, base64Image: string | undefined, lang: Language): Promise<DiagnosisInfo> => {
     const prompt = getSystemPrompt(lang, 'DIAGNOSIS');
-    
+    const symptomText = symptoms.trim() || (lang === 'zh' ? "无文字描述" : "No text provided");
+
     if (base64Image) {
         const messages = [
             {
                 role: 'user',
                 content: [
                     { image: base64Image },
-                    { text: prompt + `\n${lang === 'zh' ? "我的症状：" : "My symptoms: "}${symptoms || "None"}` }
+                    { text: prompt + `\nUser Symptoms: ${symptomText}` }
                 ]
             }
         ];
@@ -164,22 +191,22 @@ export const analyzeSymptoms = async (symptoms: string, base64Image: string | un
     } else {
         const messages = [
             { role: 'system', content: prompt },
-            { role: 'user', content: lang === 'zh' ? `我的症状：${symptoms}` : `My symptoms: ${symptoms}` }
+            { role: 'user', content: symptomText }
         ];
-        const text = await callQwen(messages);
+        const text = await callQwenText(messages);
         return extractJSON(text) as DiagnosisInfo;
     }
 };
 
 export const askFollowUpQuestion = async (context: string, question: string, lang: Language): Promise<string> => {
     const systemPrompt = lang === 'zh' 
-      ? "你是一位友善、专业的医疗助手。请根据提供的上下文回答追问。回答要简洁（100字以内），安抚用户情绪。"
+      ? "你是一位友善、专业的医疗助手。请根据提供的JSON上下文回答追问。回答要简洁（100字以内），安抚用户情绪。"
       : "You are a friendly, professional medical assistant. Answer based on context. Keep it concise (under 100 words) and reassuring.";
   
     const messages = [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Context:\n${context}\n\nQuestion: ${question}` }
+        { role: 'user', content: `Context JSON:\n${context}\n\nUser Question: ${question}` }
     ];
   
-    return await callQwen(messages);
+    return await callQwenText(messages, 'qwen-plus');
 };

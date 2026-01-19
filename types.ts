@@ -10,6 +10,8 @@ export interface DrugInfo {
   sideEffects: string;
   usage_tips: string;
   summary: string;
+  isHighRisk: boolean;      // New field: Is this a high-alert medication?
+  riskReason: string;       // New field: Why is it high risk?
 }
 
 export interface ConditionDetail {
@@ -54,6 +56,7 @@ export interface SpeechRecognition extends EventTarget {
   start(): void;
   stop(): void;
   abort(): void;
+  onstart: () => void;
   onresult: (event: any) => void;
   onerror: (event: any) => void;
   onend: () => void;

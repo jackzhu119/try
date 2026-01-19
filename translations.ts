@@ -14,11 +14,19 @@ export const t = {
     or_manual: "或手动查询",
     search_placeholder: "输入药品名称 (如: 阿莫西林)...",
     search_btn: "查询",
-    symptom_title: "描述症状 / 上传图片",
-    symptom_placeholder: "请描述您的不适（如发烧、皮疹等），点击麦克风可语音输入...",
-    add_image: "添加图片",
-    image_attached: "已附加图片",
-    camera_hint: "可拍摄患处",
+    
+    // Diagnosis UI
+    symptom_title: "智能问诊",
+    input_text_label: "1. 描述症状 (文字/语音)",
+    input_image_label: "2. 上传患处图片 (可选)",
+    symptom_placeholder: "请详细描述您的不适（如：发烧39度，持续两天，伴有咳嗽...）",
+    voice_idle: "点击开始说话",
+    voice_listening: "正在聆听...",
+    add_image: "上传照片",
+    image_attached: "已上传",
+    remove_image: "删除",
+    camera_hint: "可拍摄患处辅助诊断",
+    
     start_diagnosis: "开始 AI 诊断",
     disclaimer_hint: "* AI 建议仅供参考，急重症请立即就医",
     powered_by: "Powered by Qwen",
@@ -31,12 +39,13 @@ export const t = {
     contact: "反馈建议",
     
     // Voice & Accessibility
-    click_to_speak: "点击说话",
-    listening: "正在听...",
-    voice_error: "语音识别不可用",
+    voice_error: "该浏览器不支持语音识别，请尝试使用 Chrome。",
+    voice_start: "开始语音输入",
     font_size: "字体大小",
     
     // Result Cards
+    high_risk_alert: "⚠️ 高危药品警示",
+    high_risk_desc: "该药物已被 AI 标记为高警示药品，请务必严格遵照医嘱服用！",
     ai_summary: "AI 智能摘要",
     play: "播报",
     stop: "停止",
@@ -85,11 +94,19 @@ export const t = {
     or_manual: "Or Search Manually",
     search_placeholder: "Enter drug name (e.g., Amoxicillin)...",
     search_btn: "Search",
-    symptom_title: "Describe Symptoms / Upload Image",
-    symptom_placeholder: "Describe your discomfort, or tap mic to speak...",
-    add_image: "Add Image",
-    image_attached: "Image Attached",
+    
+    // Diagnosis UI
+    symptom_title: "AI Diagnosis",
+    input_text_label: "1. Describe Symptoms (Text/Voice)",
+    input_image_label: "2. Upload Image (Optional)",
+    symptom_placeholder: "Please describe your discomfort (e.g., fever of 39°C, lasting two days, accompanied by cough...)",
+    voice_idle: "Tap to Speak",
+    voice_listening: "Listening...",
+    add_image: "Upload Photo",
+    image_attached: "Attached",
+    remove_image: "Remove",
     camera_hint: "Photo of affected area",
+
     start_diagnosis: "Start AI Diagnosis",
     disclaimer_hint: "* AI advice is for reference only. Seek medical help for emergencies.",
     powered_by: "Powered by Qwen",
@@ -102,12 +119,13 @@ export const t = {
     contact: "Feedback",
 
     // Voice & Accessibility
-    click_to_speak: "Tap to Speak",
-    listening: "Listening...",
-    voice_error: "Voice input unavailable",
+    voice_error: "Voice input not supported in this browser. Try Chrome.",
+    voice_start: "Start Voice Input",
     font_size: "Font Size",
 
     // Result Cards
+    high_risk_alert: "⚠️ HIGH RISK ALERT",
+    high_risk_desc: "This medication is flagged as High Alert. Please follow medical instructions strictly!",
     ai_summary: "AI Summary",
     play: "Read",
     stop: "Stop",
