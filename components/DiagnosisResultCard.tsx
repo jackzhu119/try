@@ -5,7 +5,7 @@ import { DiagnosisInfo, Language } from '../types';
 import { t } from '../translations';
 import { 
   ArrowLeft, Volume2, StopCircle, Stethoscope, 
-  Activity, Thermometer, ShieldAlert, Utensils, HeartPulse, Sparkles, AlertCircle, Dna, Copy, Check, Type, ArrowRight, MousePointerClick, ChevronRight, Pill
+  Activity, Thermometer, ShieldAlert, Utensils, HeartPulse, Sparkles, AlertCircle, Dna, Copy, Check, Type, ArrowRight, MousePointerClick, ChevronRight, Pill, Home
 } from 'lucide-react';
 import { FollowUpChat } from './FollowUpChat';
 
@@ -115,13 +115,11 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
         animate={{ y: 0, opacity: 1 }}
         className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm"
       >
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={onBack}
-            className="p-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors shadow-sm active:scale-95 border border-slate-200"
-          >
-            <ArrowLeft size={20} />
-          </button>
+        <div className="flex items-center gap-2 overflow-hidden text-sm">
+          <button onClick={onBack} className="text-slate-500 hover:text-blue-600 flex items-center gap-1">
+             <Home size={14} /> {T.home}
+           </button>
+           <ChevronRight size={14} className="text-slate-300" />
           <span className="font-semibold text-slate-800 flex items-center gap-2">
             <Stethoscope size={18} className="text-blue-500"/>
             {T.diagnosis_report}
@@ -139,6 +137,12 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
           </button>
            <button onClick={handleCopy} className="p-2 rounded-full hover:bg-blue-50 text-blue-600 transition-all flex items-center gap-1 active:scale-95">
              {copied ? <Check size={20} /> : <Copy size={20} />}
+          </button>
+           <button 
+            onClick={onBack}
+            className="ml-2 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors shadow-sm active:scale-95 border border-slate-200"
+          >
+            <ArrowLeft size={20} />
           </button>
         </div>
       </motion.div>
@@ -354,7 +358,10 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = React.mem
            </motion.div>
 
          </div>
+         <div className="text-center text-[10px] text-slate-400 py-6 border-t border-slate-100 mt-8">
+            <p>{T.source_attribution}</p>
          </div>
+        </div>
       </motion.div>
     </div>
   );

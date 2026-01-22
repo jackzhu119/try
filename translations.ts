@@ -14,6 +14,8 @@ export const t = {
     or_manual: "手动输入药品名称",
     search_placeholder: "例如：阿莫西林胶囊...",
     search_btn: "查询",
+    search_history: "搜索历史",
+    clear_history: "清除",
     
     // Diagnosis UI
     symptom_title: "智能问诊引擎",
@@ -79,8 +81,10 @@ export const t = {
     no_treatments: "暂无特殊物理治疗建议",
     lifestyle: "通用生活建议",
     disclaimer_title: "免责声明：",
-    disclaimer_text: "AI 分析结果仅供参考，不能替代专业医生的当面诊断。如果症状持续加重或出现呼吸困难、剧烈疼痛等情况，请立即前往医院就诊。",
+    disclaimer_text: "AI 分析结果仅供参考，不能替代专业医生的当面诊断。如果症状持续加重或出现呼吸困难、剧烈疼痛等情况，请立即前往医院就诊。孕妇、儿童及特殊病史人群请务必遵医嘱。",
+    source_attribution: "数据来源：基于 Qwen AI 通用医疗知识库 (2024)",
     back: "返回",
+    home: "首页",
 
     // New Features
     copy_report: "复制报告",
@@ -91,7 +95,22 @@ export const t = {
     suggested_q1_drug: "这个药能和牛奶一起吃吗？",
     suggested_q2_drug: "如果我忘记吃药了怎么办？",
     suggested_q1_diag: "我需要去医院挂什么科？",
-    suggested_q2_diag: "有什么饮食上的忌口吗？"
+    suggested_q2_diag: "有什么饮食上的忌口吗？",
+    
+    // Articles & Footer
+    daily_read: "每日健康精选",
+    read_more: "阅读全文",
+    footer_privacy: "隐私政策",
+    footer_terms: "服务条款",
+    footer_desc: "SmartMed 致力于利用人工智能技术普及医疗知识，但无法替代线下诊疗。",
+    
+    // Reminders
+    reminders: "用药提醒",
+    add_reminder: "添加提醒",
+    reminder_placeholder: "暂无提醒，点击添加",
+    feature_coming_soon: "功能即将上线",
+    pharmacy_map: "附近药房",
+    my_profile: "健康档案"
   },
   en: {
     title: "SmartMed Guide",
@@ -105,6 +124,8 @@ export const t = {
     or_manual: "Manual Entry",
     search_placeholder: "e.g., Amoxicillin...",
     search_btn: "Search",
+    search_history: "History",
+    clear_history: "Clear",
     
     // Diagnosis UI
     symptom_title: "AI Diagnosis Engine",
@@ -170,8 +191,10 @@ export const t = {
     no_treatments: "No specific therapy suggestions",
     lifestyle: "Lifestyle Advice",
     disclaimer_title: "Disclaimer:",
-    disclaimer_text: "AI analysis is for reference only and cannot replace a professional doctor's diagnosis. If symptoms worsen or if you experience difficulty breathing or severe pain, please go to the hospital immediately.",
+    disclaimer_text: "AI analysis is for reference only and cannot replace a professional doctor's diagnosis. If symptoms worsen or if you experience difficulty breathing or severe pain, please go to the hospital immediately. Pregnant women and children should consult a doctor.",
+    source_attribution: "Data Source: Based on Qwen AI Medical Knowledge Base (2024)",
     back: "Back",
+    home: "Home",
 
     // New Features
     copy_report: "Copy Report",
@@ -182,6 +205,21 @@ export const t = {
     suggested_q1_drug: "Can I take this with milk?",
     suggested_q2_drug: "What if I miss a dose?",
     suggested_q1_diag: "Which hospital department should I visit?",
-    suggested_q2_diag: "Are there any dietary restrictions?"
+    suggested_q2_diag: "Are there any dietary restrictions?",
+    
+    // Articles & Footer
+    daily_read: "Daily Health Tips",
+    read_more: "Read More",
+    footer_privacy: "Privacy Policy",
+    footer_terms: "Terms of Service",
+    footer_desc: "SmartMed uses AI to democratize medical knowledge but does not replace offline consultation.",
+
+    // Reminders
+    reminders: "Reminders",
+    add_reminder: "Add Reminder",
+    reminder_placeholder: "No reminders set.",
+    feature_coming_soon: "Coming Soon",
+    pharmacy_map: "Pharmacies",
+    my_profile: "Health Profile"
   }
 };

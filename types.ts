@@ -30,6 +30,14 @@ export interface DiagnosisInfo {
   lifestyle_advice: string;  
 }
 
+export interface Article {
+  id: string;
+  title: string;
+  snippet: string;
+  category: string;
+  readTime: string;
+}
+
 export enum AppMode {
   HOME = 'HOME',
   RESULT = 'RESULT',

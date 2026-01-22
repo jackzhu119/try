@@ -5,7 +5,7 @@ import { DrugInfo, Language } from '../types';
 import { t } from '../translations';
 import { 
   ArrowLeft, Volume2, StopCircle, AlertTriangle, 
-  Pill, FileText, Thermometer, Info, ShieldCheck, HeartPulse, Activity, Copy, Check, Type, Siren
+  Pill, FileText, Thermometer, Info, ShieldCheck, HeartPulse, Activity, Copy, Check, Type, Siren, ChevronRight, Home
 } from 'lucide-react';
 import { FollowUpChat } from './FollowUpChat';
 
@@ -106,14 +106,12 @@ export const ResultCard: React.FC<ResultCardProps> = React.memo(({ info, onBack,
         animate={{ y: 0, opacity: 1 }}
         className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm"
       >
-        <div className="flex items-center gap-3 overflow-hidden">
-          <button 
-            onClick={onBack}
-            className="p-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors shadow-sm active:scale-95 border border-slate-200"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <span className="font-bold text-slate-800 truncate max-w-[150px] sm:max-w-[300px] text-lg">{info.name}</span>
+        <div className="flex items-center gap-2 overflow-hidden text-sm">
+           <button onClick={onBack} className="text-slate-500 hover:text-blue-600 flex items-center gap-1">
+             <Home size={14} /> {T.home}
+           </button>
+           <ChevronRight size={14} className="text-slate-300" />
+           <span className="font-bold text-slate-800 truncate max-w-[150px] sm:max-w-[300px]">{info.name}</span>
         </div>
         
         <div className="flex items-center gap-2">
@@ -148,6 +146,13 @@ export const ResultCard: React.FC<ResultCardProps> = React.memo(({ info, onBack,
                  </motion.div>
                )}
              </AnimatePresence>
+          </button>
+          
+           <button 
+            onClick={onBack}
+            className="ml-2 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors shadow-sm active:scale-95 border border-slate-200"
+          >
+            <ArrowLeft size={20} />
           </button>
         </div>
       </motion.div>
@@ -302,7 +307,12 @@ export const ResultCard: React.FC<ResultCardProps> = React.memo(({ info, onBack,
                   />
               </div>
             </motion.div>
-
+          </div>
+          
+           {/* Source Footer */}
+          <div className="text-center text-[10px] text-slate-400 py-6 border-t border-slate-100 mt-8">
+            <p>{T.source_attribution}</p>
+            <p className="mt-1">{T.disclaimer_text}</p>
           </div>
         </div>
       </motion.div>
