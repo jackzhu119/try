@@ -104,13 +104,35 @@ export const t = {
     footer_terms: "服务条款",
     footer_desc: "SmartMed 致力于利用人工智能技术普及医疗知识，但无法替代线下诊疗。",
     
-    // Reminders
+    // Features - Reminders
     reminders: "用药提醒",
     add_reminder: "添加提醒",
-    reminder_placeholder: "暂无提醒，点击添加",
-    feature_coming_soon: "功能即将上线",
+    reminder_placeholder: "暂无提醒，点击右下角添加",
+    med_name: "药物名称",
+    med_time: "服药时间",
+    reminder_added: "提醒已添加",
+    reminder_deleted: "提醒已删除",
+    time_to_take: "该吃药了：",
+    
+    // Features - Map
     pharmacy_map: "附近药房",
-    my_profile: "健康档案"
+    locating: "正在定位...",
+    location_denied: "无法获取位置信息，请检查权限。",
+    open_in_maps: "在地图应用中打开",
+    nearby_pharmacies: "附近的药房",
+    
+    // Features - Profile
+    my_profile: "健康档案",
+    save_profile: "保存档案",
+    profile_saved: "健康档案已更新",
+    name: "姓名",
+    age: "年龄",
+    gender: "性别",
+    allergies: "过敏史 (如: 青霉素, 芒果)",
+    conditions: "既往病史 (如: 高血压, 糖尿病)",
+    gender_male: "男",
+    gender_female: "女",
+    gender_other: "其他",
   },
   en: {
     title: "SmartMed Guide",
@@ -214,12 +236,34 @@ export const t = {
     footer_terms: "Terms of Service",
     footer_desc: "SmartMed uses AI to democratize medical knowledge but does not replace offline consultation.",
 
-    // Reminders
-    reminders: "Reminders",
+    // Features - Reminders
+    reminders: "Medication Reminders",
     add_reminder: "Add Reminder",
-    reminder_placeholder: "No reminders set.",
-    feature_coming_soon: "Coming Soon",
-    pharmacy_map: "Pharmacies",
-    my_profile: "Health Profile"
+    reminder_placeholder: "No reminders. Tap + to add.",
+    med_name: "Medication Name",
+    med_time: "Time",
+    reminder_added: "Reminder Added",
+    reminder_deleted: "Reminder Deleted",
+    time_to_take: "Time to take your medication: ",
+
+    // Features - Map
+    pharmacy_map: "Nearby Pharmacies",
+    locating: "Locating...",
+    location_denied: "Location access denied. Please check permissions.",
+    open_in_maps: "Open in Maps App",
+    nearby_pharmacies: "Detected Pharmacies",
+
+    // Features - Profile
+    my_profile: "Health Profile",
+    save_profile: "Save Profile",
+    profile_saved: "Profile Updated",
+    name: "Name",
+    age: "Age",
+    gender: "Gender",
+    allergies: "Allergies (e.g., Penicillin, Peanuts)",
+    conditions: "Conditions (e.g., Hypertension, Diabetes)",
+    gender_male: "Male",
+    gender_female: "Female",
+    gender_other: "Other",
   }
 };

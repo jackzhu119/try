@@ -2,13 +2,14 @@
 import React, { useState, useRef, useCallback, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Camera, Sparkles, Stethoscope, Pill, ArrowRight, Activity, ScanLine, ImagePlus, X, Globe, Mail, Mic, MicOff, Binary, Aperture, Zap, Clock, MapPin, User, BookOpen, Trash2, Plus } from 'lucide-react';
-import { AppMode, DrugInfo, DiagnosisInfo, LoadingState, Language, SpeechRecognition, Article } from './types';
+import { AppMode, DrugInfo, DiagnosisInfo, LoadingState, Language, SpeechRecognition, Article, Reminder, UserProfile } from './types';
 import { t } from './translations';
 import { getDrugInfoFromImage, getDrugInfoFromText, analyzeSymptoms } from './services/qwenService';
 import { ResultCard } from './components/ResultCard';
 import { DiagnosisResultCard } from './components/DiagnosisResultCard';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { Toast, ToastType } from './components/Toast';
+import { RemindersView, PharmacyMap, HealthProfile } from './components/FeatureViews';
 
 type Tab = 'DRUG' | 'DIAGNOSIS';
 
@@ -62,18 +63,42 @@ const Header = memo(({ lang, toggleLanguage }: { lang: Language, toggleLanguage:
   </motion.div>
 ));
 
-const FeatureComingSoonModal = ({ isOpen, onClose, title, lang }: { isOpen: boolean, onClose: () => void, title: string, lang: Language }) => (
+const FeatureModal = ({ 
+  isOpen, onClose, title, children 
+}: { 
+  isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode 
+}) => (
   <AnimatePresence>
     {isOpen && (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white rounded-2xl p-6 shadow-2xl relative z-10 max-w-sm w-full text-center">
-           <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-500">
-             <Clock size={32} />
+      <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center sm:p-4">
+        <motion.div 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          exit={{ opacity: 0 }} 
+          className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" 
+          onClick={onClose} 
+        />
+        <motion.div 
+          initial={{ y: "100%", opacity: 0.5 }} 
+          animate={{ y: 0, opacity: 1 }} 
+          exit={{ y: "100%", opacity: 0 }} 
+          transition={{ type: "spring", damping: 25, stiffness: 200 }}
+          className="bg-white rounded-t-[2rem] md:rounded-3xl shadow-2xl relative z-10 w-full md:max-w-md h-[85vh] md:h-[600px] flex flex-col overflow-hidden"
+        >
+           {/* Handle for mobile drag */}
+           <div className="w-full flex justify-center pt-3 pb-1 md:hidden" onClick={onClose}>
+              <div className="w-12 h-1.5 bg-slate-200 rounded-full"></div>
            </div>
-           <h3 className="text-xl font-bold text-slate-800 mb-2">{title}</h3>
-           <p className="text-slate-500 mb-6">{lang === 'zh' ? '该功能正在开发中，敬请期待！' : 'This feature is currently under development.'}</p>
-           <button onClick={onClose} className="bg-slate-900 text-white px-6 py-2 rounded-xl font-medium w-full hover:bg-slate-800">{lang === 'zh' ? '知道了' : 'Got it'}</button>
+
+           <div className="flex-1 p-6 overflow-hidden relative">
+              <button 
+                onClick={onClose}
+                className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors z-20"
+              >
+                <X size={20} className="text-slate-500" />
+              </button>
+              {children}
+           </div>
         </motion.div>
       </div>
     )}
@@ -97,6 +122,12 @@ function App() {
     isVisible: false
   });
 
+  // Feature States
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile>({
+    name: '', age: '', gender: 'male', allergies: '', conditions: ''
+  });
+
   // Inputs
   const [searchQuery, setSearchQuery] = useState('');
   const [symptomsQuery, setSymptomsQuery] = useState('');
@@ -105,7 +136,7 @@ function App() {
   const [showHistory, setShowHistory] = useState(false);
 
   // New Feature States (Modals)
-  const [activeFeatureModal, setActiveFeatureModal] = useState<string | null>(null);
+  const [activeFeature, setActiveFeature] = useState<'reminders' | 'map' | 'profile' | 'articles' | null>(null);
 
   // Voice State
   const [isListening, setIsListening] = useState(false);
@@ -119,19 +150,52 @@ function App() {
 
   // --- Effects ---
 
-  // Auto detect language
+  // Auto detect language & Load Data
   useEffect(() => {
     const browserLang = navigator.language.startsWith('zh') ? 'zh' : 'en';
     setLang(browserLang);
     
-    // Load history
+    // Load local storage
     const savedHistory = localStorage.getItem('drug_search_history');
-    if (savedHistory) {
-      try {
-        setSearchHistory(JSON.parse(savedHistory));
-      } catch (e) {}
-    }
+    if (savedHistory) setSearchHistory(JSON.parse(savedHistory));
+
+    const savedReminders = localStorage.getItem('smartmed_reminders');
+    if (savedReminders) setReminders(JSON.parse(savedReminders));
+
+    const savedProfile = localStorage.getItem('smartmed_profile');
+    if (savedProfile) setUserProfile(JSON.parse(savedProfile));
   }, []);
+
+  // Persist Data
+  useEffect(() => {
+    localStorage.setItem('smartmed_reminders', JSON.stringify(reminders));
+  }, [reminders]);
+
+  const saveProfile = useCallback(() => {
+    localStorage.setItem('smartmed_profile', JSON.stringify(userProfile));
+    showToast(T.profile_saved, 'success');
+  }, [userProfile, T.profile_saved]);
+
+  // Reminder Checker (Runs every minute)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      
+      reminders.forEach(r => {
+        if (r.enabled && r.time === currentTime && now.getSeconds() < 2) {
+           // Simple alert for demo, real app would use Push API
+           showToast(`${T.time_to_take} ${r.medication}`, 'info');
+           try {
+             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+             audio.play().catch(() => {});
+           } catch(e){}
+        }
+      });
+    }, 1000); // Check every second to catch the minute change accurately
+
+    return () => clearInterval(interval);
+  }, [reminders, T.time_to_take]);
 
   // Clear inputs when switching tabs
   useEffect(() => {
@@ -356,8 +420,30 @@ function App() {
       
       <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={closeToast} />
       
-      {/* Modals for upcoming features */}
-      <FeatureComingSoonModal isOpen={!!activeFeatureModal} onClose={() => setActiveFeatureModal(null)} title={activeFeatureModal || ''} lang={lang} />
+      {/* Functional Feature Modal */}
+      <FeatureModal 
+        isOpen={!!activeFeature} 
+        onClose={() => setActiveFeature(null)} 
+        title=""
+      >
+        {activeFeature === 'reminders' && (
+           <RemindersView reminders={reminders} setReminders={setReminders} lang={lang} />
+        )}
+        {activeFeature === 'map' && (
+           <PharmacyMap lang={lang} />
+        )}
+        {activeFeature === 'profile' && (
+           <HealthProfile profile={userProfile} setProfile={setUserProfile} lang={lang} onSave={saveProfile} />
+        )}
+        {activeFeature === 'articles' && (
+           <div className="flex flex-col h-full items-center justify-center text-center p-6 space-y-4">
+              <BookOpen size={48} className="text-blue-200" />
+              <h3 className="text-xl font-bold text-slate-700">{T.daily_read}</h3>
+              <p className="text-slate-500">{lang === 'zh' ? '更多健康资讯接入中...' : 'More articles coming soon...'}</p>
+              <button onClick={() => setActiveFeature(null)} className="px-6 py-2 bg-slate-100 rounded-full text-slate-600 hover:bg-slate-200 font-medium">Close</button>
+           </div>
+        )}
+      </FeatureModal>
 
       <input type="file" ref={drugFileInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleDrugFileUpload} />
       <input type="file" ref={diagnosisFileInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleDiagnosisFileUpload} />
@@ -662,7 +748,7 @@ function App() {
                       key={article.id}
                       whileHover={{ y: -5 }}
                       className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 border border-white/60 shadow-sm hover:shadow-lg transition-all cursor-pointer group"
-                      onClick={() => setActiveFeatureModal(T.daily_read)}
+                      onClick={() => setActiveFeature('articles')}
                     >
                        <div className="flex justify-between items-start mb-3">
                           <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-600 px-2 py-1 rounded-md">{article.category}</span>
@@ -702,13 +788,13 @@ function App() {
       {mode === AppMode.HOME && (
          <div className="fixed bottom-6 left-0 right-0 z-40 flex justify-center pointer-events-none">
             <div className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-full px-2 py-2 flex items-center gap-1 pointer-events-auto">
-                <button onClick={() => setActiveFeatureModal(T.reminders)} className="p-3 rounded-full hover:bg-slate-100 text-slate-500 hover:text-blue-600 transition-colors tooltip" title={T.reminders}>
+                <button onClick={() => setActiveFeature('reminders')} className="p-3 rounded-full hover:bg-slate-100 text-slate-500 hover:text-blue-600 transition-colors tooltip" title={T.reminders}>
                    <Clock size={20} />
                 </button>
-                 <button onClick={() => setActiveFeatureModal(T.pharmacy_map)} className="p-3 rounded-full hover:bg-slate-100 text-slate-500 hover:text-blue-600 transition-colors" title={T.pharmacy_map}>
+                 <button onClick={() => setActiveFeature('map')} className="p-3 rounded-full hover:bg-slate-100 text-slate-500 hover:text-blue-600 transition-colors" title={T.pharmacy_map}>
                    <MapPin size={20} />
                 </button>
-                 <button onClick={() => setActiveFeatureModal(T.my_profile)} className="p-3 rounded-full hover:bg-slate-100 text-slate-500 hover:text-blue-600 transition-colors" title={T.my_profile}>
+                 <button onClick={() => setActiveFeature('profile')} className="p-3 rounded-full hover:bg-slate-100 text-slate-500 hover:text-blue-600 transition-colors" title={T.my_profile}>
                    <User size={20} />
                 </button>
             </div>

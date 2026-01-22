@@ -38,6 +38,22 @@ export interface Article {
   readTime: string;
 }
 
+export interface Reminder {
+  id: string;
+  medication: string;
+  time: string; // Format "HH:mm"
+  days: string[]; // e.g., ["Mon", "Tue"]
+  enabled: boolean;
+}
+
+export interface UserProfile {
+  name: string;
+  age: string;
+  gender: string;
+  allergies: string;
+  conditions: string;
+}
+
 export enum AppMode {
   HOME = 'HOME',
   RESULT = 'RESULT',
