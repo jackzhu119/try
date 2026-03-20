@@ -17,19 +17,28 @@ export const FollowUpChat: React.FC<FollowUpChatProps> = memo(({ contextText, la
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
   const T = t[lang];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+      setIsAtBottom(scrollHeight - scrollTop - clientHeight < 50);
+    }
+  };
+
   useEffect(() => {
-    if (messages.length > 0) {
+    if (messages.length > 0 && isAtBottom) {
       setTimeout(() => {
         scrollToBottom();
       }, 100);
     }
-  }, [messages.length]);
+  }, [messages.length, isAtBottom]);
 
   const handleSend = async (text: string) => {
     if (!text.trim() || isLoading) return;
@@ -79,7 +88,11 @@ export const FollowUpChat: React.FC<FollowUpChatProps> = memo(({ contextText, la
          <span className="font-semibold text-slate-700 text-sm">{T.ask_dr_ai}</span>
        </div>
 
-       <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[250px] max-h-[400px]">
+       <div 
+         ref={scrollContainerRef}
+         onScroll={handleScroll}
+         className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[250px] max-h-[400px]"
+       >
           {messages.length === 0 && (
              <div className="text-center py-8 space-y-4">
                 <div className="w-16 h-16 bg-gradient-to-tr from-blue-100 to-indigo-100 rounded-full mx-auto flex items-center justify-center relative">

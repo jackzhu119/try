@@ -1,32 +1,43 @@
-import { Config, Context } from "@netlify/functions";
+import { Handler } from "@netlify/functions";
 
-export default async (req: Request, context: Context) => {
+export const handler: Handler = async (event, context) => {
   // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 204,
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization, X-DashScope-WorkSpace",
       },
-    });
+      body: ""
+    };
   }
 
-  if (req.method !== "POST") {
-    return new Response("Method Not Allowed", { status: 405 });
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, body: "Method Not Allowed" };
   }
 
   try {
-    const url = new URL(req.url);
-    const isMultimodal = url.pathname.includes("multimodal");
+    let body = event.body || "";
+    if (event.isBase64Encoded) {
+      body = Buffer.from(body, 'base64').toString('utf-8');
+    }
+
+    let isMultimodal = event.path.includes("multimodal");
+    try {
+      const parsedBody = JSON.parse(body);
+      if (parsedBody.model && parsedBody.model.includes("vl")) {
+        isMultimodal = true;
+      }
+    } catch (e) {
+      // ignore parse error here
+    }
     
     const targetUrl = isMultimodal 
       ? "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation"
       : "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
-
-    const body = await req.text();
-    const authHeader = req.headers.get("Authorization");
+    const authHeader = event.headers.authorization || event.headers.Authorization;
     const apiKey = process.env.QWEN_API_KEY || process.env.API_KEY || "sk-e5e7b33d1f684e66be3cd51e52ae0bab";
     const finalAuth = authHeader && authHeader !== "Bearer undefined" && authHeader !== "Bearer null" && authHeader !== "Bearer " 
       ? authHeader 
@@ -37,7 +48,7 @@ export default async (req: Request, context: Context) => {
       "Content-Type": "application/json",
     };
     
-    const workspaceHeader = req.headers.get("X-DashScope-WorkSpace");
+    const workspaceHeader = event.headers["x-dashscope-workspace"] || event.headers["X-DashScope-WorkSpace"];
     if (workspaceHeader) {
       headers["X-DashScope-WorkSpace"] = workspaceHeader;
     }
@@ -50,24 +61,22 @@ export default async (req: Request, context: Context) => {
 
     const data = await response.text();
 
-    return new Response(data, {
-      status: response.status,
+    return {
+      statusCode: response.status,
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Content-Type": "application/json",
       },
-    });
+      body: data
+    };
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    return {
+      statusCode: 500,
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Content-Type": "application/json",
       },
-    });
+      body: JSON.stringify({ error: error.message })
+    };
   }
-};
-
-export const config: Config = {
-  path: "/api/qwen/*",
 };

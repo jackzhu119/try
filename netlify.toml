@@ -1,4 +1,9 @@
 [[redirects]]
+  from = "/api/qwen/*"
+  to = "/.netlify/functions/qwen"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
