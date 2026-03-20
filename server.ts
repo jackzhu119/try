@@ -12,15 +12,27 @@ async function startServer() {
   // API routes FIRST
   app.post("/api/qwen/text", async (req, res) => {
     try {
+      let authHeader = req.headers.authorization;
+      if (!authHeader || authHeader === 'Bearer undefined' || authHeader === 'Bearer null' || authHeader === 'Bearer ') {
+        authHeader = `Bearer ${process.env.QWEN_API_KEY || "sk-e5e7b33d1f684e66be3cd51e52ae0bab"}`;
+      }
       const response = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation', {
         method: 'POST',
         headers: {
-          'Authorization': req.headers.authorization || '',
-          'Content-Type': 'application/json'
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+          ...(req.headers['x-dashscope-workspace'] ? { 'X-DashScope-WorkSpace': req.headers['x-dashscope-workspace'] as string } : {})
         },
         body: JSON.stringify(req.body)
       });
-      const data = await response.json();
+      
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        return res.status(response.status).json({ message: `Non-JSON response from DashScope: ${text.substring(0, 100)}` });
+      }
       res.status(response.status).json(data);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -29,15 +41,27 @@ async function startServer() {
 
   app.post("/api/qwen/multimodal", async (req, res) => {
     try {
+      let authHeader = req.headers.authorization;
+      if (!authHeader || authHeader === 'Bearer undefined' || authHeader === 'Bearer null' || authHeader === 'Bearer ') {
+        authHeader = `Bearer ${process.env.QWEN_API_KEY || "sk-e5e7b33d1f684e66be3cd51e52ae0bab"}`;
+      }
       const response = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation', {
         method: 'POST',
         headers: {
-          'Authorization': req.headers.authorization || '',
-          'Content-Type': 'application/json'
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+          ...(req.headers['x-dashscope-workspace'] ? { 'X-DashScope-WorkSpace': req.headers['x-dashscope-workspace'] as string } : {})
         },
         body: JSON.stringify(req.body)
       });
-      const data = await response.json();
+      
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        return res.status(response.status).json({ message: `Non-JSON response from DashScope: ${text.substring(0, 100)}` });
+      }
       res.status(response.status).json(data);
     } catch (error: any) {
       res.status(500).json({ message: error.message });

@@ -1,7 +1,7 @@
 
 import { DrugInfo, DiagnosisInfo, Language } from "../types";
 
-const API_KEY = process.env.API_KEY;
+const API_KEY = process.env.API_KEY || "sk-e5e7b33d1f684e66be3cd51e52ae0bab";
 
 // Proxies defined in vite.config.ts / vercel.json
 const TEXT_API_URL = "/api/qwen/text"; 
@@ -47,13 +47,31 @@ const callQwenText = async (messages: any[], model: string = 'qwen-plus') => {
       });
   
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || "Qwen API Error");
+        let errMsg = `Qwen API Error (${response.status})`;
+        const text = await response.text();
+        try {
+          const err = JSON.parse(text);
+          errMsg = err.message || errMsg;
+        } catch (e) {
+          console.error("Non-JSON error response:", text);
+        }
+        throw new Error(errMsg);
       }
   
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error("Non-JSON success response:", text);
+        throw new Error("Invalid API response format");
+      }
       if (data.code) {
         throw new Error(data.message || data.code);
+      }
+      if (!data.output || !data.output.choices || data.output.choices.length === 0) {
+        console.error("Unexpected API response structure:", data);
+        throw new Error("Unexpected API response structure");
       }
       return data.output.choices[0].message.content;
     } catch (error) {
@@ -80,13 +98,31 @@ const callQwenVL = async (messages: any[]) => {
       });
   
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || "Qwen VL API Error");
+        let errMsg = `Qwen VL API Error (${response.status})`;
+        const text = await response.text();
+        try {
+          const err = JSON.parse(text);
+          errMsg = err.message || errMsg;
+        } catch (e) {
+          console.error("Non-JSON error response:", text);
+        }
+        throw new Error(errMsg);
       }
   
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error("Non-JSON success response:", text);
+        throw new Error("Invalid API response format");
+      }
       if (data.code) {
         throw new Error(data.message || data.code);
+      }
+      if (!data.output || !data.output.choices || data.output.choices.length === 0) {
+        console.error("Unexpected API response structure:", data);
+        throw new Error("Unexpected API response structure");
       }
       // Qwen VL structure is slightly different
       const content = data.output.choices[0].message.content;

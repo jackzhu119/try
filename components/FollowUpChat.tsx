@@ -25,7 +25,9 @@ export const FollowUpChat: React.FC<FollowUpChatProps> = memo(({ contextText, la
 
   useEffect(() => {
     if (messages.length > 0) {
-      scrollToBottom();
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
     }
   }, [messages.length]);
 
