@@ -6,7 +6,7 @@ import { t } from '../translations';
 import { 
   ArrowLeft, Volume2, StopCircle, AlertTriangle, 
   Pill, FileText, Thermometer, Info, ShieldCheck, HeartPulse, Activity, Copy, Check, Type, Siren, ChevronRight, Home,
-  Sun, Moon, Snowflake, Flame, Droplets, Stethoscope, CreditCard, Ban
+  Sun, Moon, Snowflake, Droplets, Stethoscope, CreditCard, Ban
 } from 'lucide-react';
 import { FollowUpChat } from './FollowUpChat';
 

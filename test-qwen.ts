@@ -1,3 +1,4 @@
+export {};
 async function test() {
   const apiKey = "sk-e5e7b33d1f684e66be3cd51e52ae0bab";
   const url = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation';

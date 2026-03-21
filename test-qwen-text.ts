@@ -1,3 +1,4 @@
+export {};
 async function test() {
   const response = await fetch('http://localhost:3000/api/qwen/text', {
     method: 'POST',

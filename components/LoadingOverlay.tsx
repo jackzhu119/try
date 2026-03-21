@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Brain, Database, ScanLine, CheckCircle2, Stethoscope, HeartPulse, FileText, Search, Zap, Dna, Microscope, Sparkles } from 'lucide-react';
+import { Brain, Database, ScanLine, CheckCircle2, Stethoscope, HeartPulse, FileText, Dna, Microscope } from 'lucide-react';
 import { Language } from '../types';
 import { t } from '../translations';
 
@@ -85,8 +85,17 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ message, type, l
 
   const ActiveIcon = currentPhases[phase].icon;
 
+  const [particles] = useState(() => {
+    return [...Array(6)].map(() => ({
+      initialX: Math.random() * window.innerWidth,
+      initialY: Math.random() * window.innerHeight,
+      targetY: Math.random() * window.innerHeight,
+      duration: 10 + Math.random() * 10
+    }));
+  });
+
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -108,20 +117,20 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ message, type, l
         </div>
 
         {/* Floating Particles */}
-        {[...Array(6)].map((_, i) => (
+        {particles.map((p, i) => (
           <motion.div
             key={i}
             className={`absolute w-1 h-1 rounded-full ${theme.particle} opacity-40`}
             initial={{ 
-              x: Math.random() * window.innerWidth, 
-              y: Math.random() * window.innerHeight 
+              x: p.initialX, 
+              y: p.initialY 
             }}
             animate={{ 
-              y: [null, Math.random() * window.innerHeight],
+              y: [null, p.targetY],
               opacity: [0.2, 0.5, 0.2]
             }}
             transition={{ 
-              duration: 10 + Math.random() * 10, 
+              duration: p.duration, 
               repeat: Infinity, 
               ease: "linear" 
             }}

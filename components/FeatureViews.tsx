@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, MapPin, User, Plus, Trash2, Bell, Navigation, Save, X, ExternalLink } from 'lucide-react';
 import { Reminder, UserProfile, Language } from '../types';
@@ -148,25 +148,30 @@ export const PharmacyMap: React.FC<MapProps> = ({ lang }) => {
   const T = t[lang];
 
   useEffect(() => {
+    let isMounted = true;
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setCoords({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude
-          });
+          if (isMounted) {
+            setCoords({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude
+            });
+          }
         },
         (err) => {
           console.error(err);
-          setError(T.location_denied);
-          // Fallback to a default location (e.g. Shanghai/NY) just for demo UI
-          // setCoords({ lat: 31.2304, lng: 121.4737 });
+          if (isMounted) setError(T.location_denied);
         }
       );
     } else {
-      setError(T.location_denied);
+      // Avoid calling setState synchronously during render
+      setTimeout(() => {
+        if (isMounted) setError(T.location_denied);
+      }, 0);
     }
-  }, [lang]);
+    return () => { isMounted = false; };
+  }, [lang, T.location_denied]);
 
   const openGoogleMaps = () => {
     if (coords) {

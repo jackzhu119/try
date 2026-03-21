@@ -29,7 +29,7 @@ const extractJSON = (text: string) => {
     }
 };
 
-const callQwenText = async (messages: any[], model: string = 'qwen-plus') => {
+const callQwenText = async (messages: unknown[], model: string = 'qwen-plus') => {
     if (!API_KEY) throw new Error("API Key is missing");
   
     try {
@@ -52,7 +52,7 @@ const callQwenText = async (messages: any[], model: string = 'qwen-plus') => {
         try {
           const err = JSON.parse(text);
           errMsg = err.message || errMsg;
-        } catch (e) {
+        } catch {
           console.error("Non-JSON error response:", text);
         }
         throw new Error(errMsg);
@@ -62,7 +62,7 @@ const callQwenText = async (messages: any[], model: string = 'qwen-plus') => {
       let data;
       try {
         data = JSON.parse(text);
-      } catch (e) {
+      } catch {
         console.error("Non-JSON success response:", text);
         throw new Error("Invalid API response format");
       }
@@ -80,7 +80,7 @@ const callQwenText = async (messages: any[], model: string = 'qwen-plus') => {
     }
 };
 
-const callQwenVL = async (messages: any[]) => {
+const callQwenVL = async (messages: unknown[]) => {
     if (!API_KEY) throw new Error("API Key is missing");
   
     try {
@@ -103,7 +103,7 @@ const callQwenVL = async (messages: any[]) => {
         try {
           const err = JSON.parse(text);
           errMsg = err.message || errMsg;
-        } catch (e) {
+        } catch {
           console.error("Non-JSON error response:", text);
         }
         throw new Error(errMsg);
@@ -113,7 +113,7 @@ const callQwenVL = async (messages: any[]) => {
       let data;
       try {
         data = JSON.parse(text);
-      } catch (e) {
+      } catch {
         console.error("Non-JSON success response:", text);
         throw new Error("Invalid API response format");
       }

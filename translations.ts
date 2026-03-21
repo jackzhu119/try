@@ -1,6 +1,4 @@
 
-import { Language } from './types';
-
 export const t = {
   zh: {
     title: "SmartMed Guide",

@@ -30,12 +30,13 @@ async function startServer() {
       let data;
       try {
         data = JSON.parse(text);
-      } catch (e) {
+      } catch {
         return res.status(response.status).json({ message: `Non-JSON response from DashScope: ${text.substring(0, 100)}` });
       }
       res.status(response.status).json(data);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
+    } catch (error: unknown) {
+      const err = error as Error;
+      res.status(500).json({ message: err.message });
     }
   });
 
@@ -59,12 +60,13 @@ async function startServer() {
       let data;
       try {
         data = JSON.parse(text);
-      } catch (e) {
+      } catch {
         return res.status(response.status).json({ message: `Non-JSON response from DashScope: ${text.substring(0, 100)}` });
       }
       res.status(response.status).json(data);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
+    } catch (error: unknown) {
+      const err = error as Error;
+      res.status(500).json({ message: err.message });
     }
   });
 
@@ -78,7 +80,7 @@ async function startServer() {
   } else {
     // Serve static files in production
     app.use(express.static('dist'));
-    app.get('*', (req, res) => {
+    app.get('*all', (req, res) => {
       res.sendFile('dist/index.html', { root: '.' });
     });
   }

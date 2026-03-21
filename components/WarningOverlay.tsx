@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, X, ShieldAlert, AlertCircle, Info } from 'lucide-react';
+import { AlertTriangle, X, ShieldAlert, Info } from 'lucide-react';
 import { Language } from '../types';
 
 export type WarningLevel = 'RED' | 'ORANGE' | 'BLUE' | null;
@@ -17,10 +17,11 @@ export const WarningOverlay: React.FC<WarningOverlayProps> = ({ level, title, me
   const [audioPlayed, setAudioPlayed] = useState(false);
 
   useEffect(() => {
+    let played = false;
     if (level === 'RED' && !audioPlayed) {
       // Play urgent alarm sound
       const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // Placeholder alarm
-      audio.play().catch(() => {});
+      audio.play().catch(() => { /* ignore */ });
       
       // Speak the warning
       const utterance = new SpeechSynthesisUtterance(message);
@@ -28,12 +29,16 @@ export const WarningOverlay: React.FC<WarningOverlayProps> = ({ level, title, me
       utterance.rate = 1.1;
       window.speechSynthesis.speak(utterance);
       
-      setAudioPlayed(true);
+      played = true;
     } else if (level === 'ORANGE' && !audioPlayed) {
        const utterance = new SpeechSynthesisUtterance(message);
        utterance.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
        window.speechSynthesis.speak(utterance);
-       setAudioPlayed(true);
+       played = true;
+    }
+    
+    if (played) {
+      setTimeout(() => setAudioPlayed(true), 0);
     }
   }, [level, message, lang, audioPlayed]);
 

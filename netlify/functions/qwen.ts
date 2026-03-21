@@ -1,6 +1,6 @@
 import { Handler } from "@netlify/functions";
 
-export const handler: Handler = async (event, context) => {
+export const handler: Handler = async (event) => {
   // Handle CORS preflight
   if (event.httpMethod === "OPTIONS") {
     return {
@@ -8,14 +8,20 @@ export const handler: Handler = async (event, context) => {
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-DashScope-WorkSpace",
-      },
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-DashScope-WorkSpace"
+      } as Record<string, string>,
       body: ""
     };
   }
 
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
+    return { 
+      statusCode: 405, 
+      headers: {
+        "Access-Control-Allow-Origin": "*"
+      } as Record<string, string>,
+      body: "Method Not Allowed" 
+    };
   }
 
   try {
@@ -30,7 +36,7 @@ export const handler: Handler = async (event, context) => {
       if (parsedBody.model && parsedBody.model.includes("vl")) {
         isMultimodal = true;
       }
-    } catch (e) {
+    } catch {
       // ignore parse error here
     }
     
@@ -69,14 +75,15 @@ export const handler: Handler = async (event, context) => {
       },
       body: data
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     return {
       statusCode: 500,
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({ error: err.message })
     };
   }
 };

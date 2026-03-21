@@ -5,7 +5,7 @@ import { DiagnosisInfo, Language } from '../types';
 import { t } from '../translations';
 import { 
   ArrowLeft, Volume2, StopCircle, Stethoscope, 
-  Activity, Thermometer, ShieldAlert, Utensils, HeartPulse, Sparkles, AlertCircle, Dna, Copy, Check, Type, ArrowRight, MousePointerClick, ChevronRight, Pill, Home
+  Activity, ShieldAlert, Utensils, HeartPulse, Sparkles, AlertCircle, Copy, Check, Type, MousePointerClick, ChevronRight, Pill, Home
 } from 'lucide-react';
 import { FollowUpChat } from './FollowUpChat';
 

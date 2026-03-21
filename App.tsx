@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useCallback, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Camera, Sparkles, Stethoscope, Pill, ArrowRight, Activity, ScanLine, ImagePlus, X, Globe, Mail, Mic, MicOff, Binary, Aperture, Zap, Clock, MapPin, User, BookOpen, Trash2, Plus } from 'lucide-react';
+import { Search, Camera, Sparkles, Stethoscope, Pill, ArrowRight, Activity, ScanLine, ImagePlus, X, Globe, Mail, Mic, MicOff, Binary, Aperture, Zap, Clock, MapPin, User, BookOpen } from 'lucide-react';
 import { AppMode, DrugInfo, DiagnosisInfo, LoadingState, Language, SpeechRecognition, Article, Reminder, UserProfile } from './types';
 import { t } from './translations';
 import { getDrugInfoFromImage, getDrugInfoFromText, analyzeSymptoms } from './services/qwenService';
@@ -65,9 +65,9 @@ const Header = memo(({ lang, toggleLanguage }: { lang: Language, toggleLanguage:
 ));
 
 const FeatureModal = ({ 
-  isOpen, onClose, title, children 
+  isOpen, onClose, children 
 }: { 
-  isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode 
+  isOpen: boolean, onClose: () => void, children: React.ReactNode 
 }) => (
   <AnimatePresence>
     {isOpen && (
@@ -180,10 +180,17 @@ function App() {
     localStorage.setItem('smartmed_reminders', JSON.stringify(reminders));
   }, [reminders]);
 
+  // --- Handlers ---
+
+  const showToast = useCallback((message: string, type: ToastType = 'info') => {
+    setToast({ message, type, isVisible: true });
+    setTimeout(() => setToast(prev => ({ ...prev, isVisible: false })), 3000);
+  }, []);
+
   const saveProfile = useCallback(() => {
     localStorage.setItem('smartmed_profile', JSON.stringify(userProfile));
     showToast(T.profile_saved, 'success');
-  }, [userProfile, T.profile_saved]);
+  }, [userProfile, T.profile_saved, showToast]);
 
   // Reminder Checker (Runs every minute)
   useEffect(() => {
@@ -197,14 +204,14 @@ function App() {
            showToast(`${T.time_to_take} ${r.medication}`, 'info');
            try {
              const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-             audio.play().catch(() => {});
-           } catch(e){}
+             audio.play().catch(() => { /* ignore */ });
+           } catch { /* ignore */ }
         }
       });
     }, 1000); // Check every second to catch the minute change accurately
 
     return () => clearInterval(interval);
-  }, [reminders, T.time_to_take]);
+  }, [reminders, T.time_to_take, showToast]);
 
   // Clear inputs when switching tabs
   useEffect(() => {
@@ -213,12 +220,6 @@ function App() {
     setDiagnosisImage(null);
     setShowHistory(false);
   }, [activeTab]);
-
-  // --- Handlers ---
-
-  const showToast = useCallback((message: string, type: ToastType = 'info') => {
-    setToast({ message, type, isVisible: true });
-  }, []);
 
   const closeToast = useCallback(() => {
     setToast(prev => ({ ...prev, isVisible: false }));
@@ -266,11 +267,13 @@ function App() {
           setIsListening(true);
         };
 
-        recognition.onresult = (event: any) => {
-          const lastResultIndex = event.results.length - 1;
-          const transcript = event.results[lastResultIndex][0].transcript;
+        recognition.onresult = (event: unknown) => {
+          // @ts-expect-error SpeechRecognitionEvent
+          const e = event;
+          const lastResultIndex = e.results.length - 1;
+          const transcript = e.results[lastResultIndex][0].transcript;
           
-          if (event.results[lastResultIndex].isFinal) {
+          if (e.results[lastResultIndex].isFinal) {
              setSymptomsQuery((prev) => {
                const needsSpace = prev.length > 0 && !prev.endsWith(' ');
                return prev + (needsSpace ? ' ' : '') + transcript;
@@ -278,10 +281,12 @@ function App() {
           }
         };
 
-        recognition.onerror = (event: any) => {
-          console.error("Speech recognition error", event.error);
+        recognition.onerror = (event: unknown) => {
+          // @ts-expect-error SpeechRecognitionErrorEvent
+          const e = event;
+          console.error("Speech recognition error", e.error);
           setIsListening(false);
-          if (event.error !== 'no-speech') {
+          if (e.error !== 'no-speech') {
              showToast(T.voice_error, 'error');
           }
         };
@@ -431,16 +436,17 @@ function App() {
         const info = await withMinDelay(getDrugInfoFromText(query, lang));
         
         // Run Safety Checks
-        const hasWarning = checkInteractions(info);
+        checkInteractions(info);
         
         setDrugInfo(info);
         setMode(AppMode.RESULT);
-    } catch (error: any) {
-        showToast(error.message || "Search failed", 'error');
+    } catch (error: unknown) {
+        const err = error as Error;
+        showToast(err.message || "Search failed", 'error');
     } finally {
         setLoading({ isLoading: false, message: '' });
     }
-  }, [searchQuery, lang, T.loading_drug, showToast]);
+  }, [searchQuery, lang, T.loading_drug, showToast, checkInteractions]);
 
   const handleDrugFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -455,17 +461,18 @@ function App() {
         const info = await withMinDelay(getDrugInfoFromImage(base64String, lang));
         
         // Run Safety Checks
-        const hasWarning = checkInteractions(info);
+        checkInteractions(info);
 
         setDrugInfo(info);
         setMode(AppMode.RESULT);
-    } catch (error: any) {
-        showToast(`${T.upload_fail}: ` + (error.message || "Error"), 'error');
+    } catch (error: unknown) {
+        const err = error as Error;
+        showToast(`${T.upload_fail}: ` + (err.message || "Error"), 'error');
     } finally {
         setLoading({ isLoading: false, message: '' });
         if (drugFileInputRef.current) drugFileInputRef.current.value = '';
     }
-  }, [lang, T.loading_vision, T.upload_fail, showToast]);
+  }, [lang, T.loading_vision, T.upload_fail, showToast, checkInteractions]);
 
   const handleDiagnosisFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -476,7 +483,7 @@ function App() {
         setDiagnosisImage(compressedBase64);
         if (diagnosisFileInputRef.current) diagnosisFileInputRef.current.value = '';
         showToast(T.image_attached, 'success');
-    } catch (error) {
+    } catch {
         showToast("Image processing failed", 'error');
     }
   }, [showToast, T.image_attached]);
@@ -492,8 +499,9 @@ function App() {
       const info = await withMinDelay(analyzeSymptoms(symptomsQuery, diagnosisImage || undefined, lang));
       setDiagnosisInfo(info);
       setMode(AppMode.DIAGNOSIS_RESULT);
-    } catch (error: any) {
-       showToast(`${T.diagnosis_fail}: ` + (error.message || "Error"), 'error');
+    } catch (error: unknown) {
+       const err = error as Error;
+       showToast(`${T.diagnosis_fail}: ` + (err.message || "Error"), 'error');
     } finally {
       setLoading({ isLoading: false, message: '' });
     }
@@ -509,7 +517,7 @@ function App() {
        const info = await withMinDelay(getDrugInfoFromText(itemQuery, lang));
        setDrugInfo(info);
        setMode(AppMode.RESULT); 
-    } catch (error: any) {
+    } catch {
        showToast(lang === 'zh' ? "查询详情失败" : "Failed to fetch details", 'error');
     } finally {
        setLoading({ isLoading: false, message: '' });
@@ -561,7 +569,6 @@ function App() {
       <FeatureModal 
         isOpen={!!activeFeature} 
         onClose={() => setActiveFeature(null)} 
-        title=""
       >
         {activeFeature === 'reminders' && (
            <RemindersView reminders={reminders} setReminders={setReminders} lang={lang} />

@@ -22,8 +22,11 @@ async function test() {
 
   const context = {};
   
-  const response = await handler(event as any, context as any);
-  console.log(response.statusCode);
-  console.log(response.body);
+  // @ts-expect-error test event
+  const response = await handler(event, context);
+  if (response) {
+    console.log(response.statusCode);
+    console.log(response.body);
+  }
 }
 test();
