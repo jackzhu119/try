@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useCallback, useEffect, memo } from 'react';
+import React, { useState, useRef, useCallback, useEffect, memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Camera, Sparkles, Stethoscope, Pill, ArrowRight, Activity, ScanLine, ImagePlus, X, Globe, Mail, Mic, MicOff, Binary, Aperture, Zap, Clock, MapPin, User, BookOpen } from 'lucide-react';
 import { AppMode, DrugInfo, DiagnosisInfo, LoadingState, Language, SpeechRecognition, Article, Reminder, UserProfile } from './types';
@@ -17,8 +17,8 @@ type Tab = 'DRUG' | 'DIAGNOSIS';
 // --- OPTIMIZATION: Static Background Component (Never Re-renders) ---
 const CyberBackground = memo(() => (
   <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 bg-[#f8fafc] transform-gpu">
-    {/* CSS-based Texture (Lighter than SVG filters) */}
-    <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150"></div>
+    {/* Local texture avoids an extra network request on first paint */}
+    <div className="absolute inset-0 opacity-[0.2] bg-[radial-gradient(circle_at_1px_1px,rgba(15,23,42,0.06)_1px,transparent_0)] [background-size:18px_18px]"></div>
     
     {/* Grid - CSS rendered */}
     <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
@@ -192,14 +192,16 @@ function App() {
     showToast(T.profile_saved, 'success');
   }, [userProfile, T.profile_saved, showToast]);
 
-  // Reminder Checker (Runs every minute)
+  // Reminder Checker (runs exactly on minute boundaries to avoid 1-second polling)
   useEffect(() => {
-    const interval = setInterval(() => {
+    let timeoutId: number | undefined;
+
+    const checkReminders = () => {
       const now = new Date();
       const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       
       reminders.forEach(r => {
-        if (r.enabled && r.time === currentTime && now.getSeconds() < 2) {
+        if (r.enabled && r.time === currentTime) {
            // Simple alert for demo, real app would use Push API
            showToast(`${T.time_to_take} ${r.medication}`, 'info');
            try {
@@ -208,9 +210,16 @@ function App() {
            } catch { /* ignore */ }
         }
       });
-    }, 1000); // Check every second to catch the minute change accurately
+      
+      const millisecondsToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+      timeoutId = window.setTimeout(checkReminders, Math.max(millisecondsToNextMinute, 250));
+    };
 
-    return () => clearInterval(interval);
+    checkReminders();
+
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
   }, [reminders, T.time_to_take, showToast]);
 
   // Clear inputs when switching tabs
@@ -540,11 +549,11 @@ function App() {
   }, [mode, diagnosisInfo]);
 
   // Mock Data for Articles
-  const articles: Article[] = [
+  const articles: Article[] = useMemo(() => [
     { id: '1', category: '科普', title: lang === 'zh' ? '抗生素使用的五大误区' : '5 Myths About Antibiotics', snippet: lang === 'zh' ? '感冒了一定要吃抗生素吗？医生告诉你真相...' : 'Do you really need antibiotics for a cold? Experts say...', readTime: '3 min' },
     { id: '2', category: '生活', title: lang === 'zh' ? '如何通过饮食增强免疫力' : 'Boosting Immunity Through Diet', snippet: lang === 'zh' ? '合理的膳食搭配比补品更重要...' : 'Balanced meals are better than supplements...', readTime: '4 min' },
     { id: '3', category: '急救', title: lang === 'zh' ? '家庭常备药箱指南' : 'Home First Aid Kit Essentials', snippet: lang === 'zh' ? '每个家庭都应该准备这几类基础药物...' : 'Every home should have these basic medications...', readTime: '5 min' },
-  ];
+  ], [lang]);
 
   // --- Render ---
 
