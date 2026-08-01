@@ -1,6 +1,6 @@
 {
-  "name": "Copy of Smart Med Guide",
-  "description": "AI-powered medicine instruction assistant with voice playback.",
+  "name": "Smart Med Guide",
+  "description": "Medicine information assistant with voice playback.",
   "requestFramePermissions": [
     "camera",
     "microphone"
